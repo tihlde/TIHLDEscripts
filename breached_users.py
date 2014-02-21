@@ -2,13 +2,10 @@ import urllib2
 import ldap
 from os import geteuid
 
-<<<<<<< HEAD
 # API url
-=======
 if geteuid() != 0:
             exit("You need to have root privileges to run this script.\nPlease try again, this time using 'sudo'. Exiting.")
 
->>>>>>> bd49d3def3123c5b04dfe2c77759efddab206938
 api_url = 'https://haveibeenpwned.com/api/v2/breachedaccount/'
 
 #Initiation email array
