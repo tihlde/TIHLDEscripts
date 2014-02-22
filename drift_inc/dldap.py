@@ -11,12 +11,12 @@ import base64
 import hashlib
 import os
 import random
-import smtplib
-from email.MIMEMultipart import MIMEMultipart
-from email.MIMEText import MIMEText
-from datetime import datetime, timedelta
+#import smtplib
+#from email.MIMEMultipart import MIMEMultipart
+#from email.MIMEText import MIMEText
+from datetime import datetime
 import calendar
-from pprint import pprint
+#from pprint import pprint
 
 notifyToEmail = 'drift@tihlde.org'
 notifyFromEmail = 'noreply@tihlde.org'
@@ -32,6 +32,7 @@ ANSI_BOLD = '\033[1m'
 ANSI_RED = '\033[31m'
 ANSI_BLINK = '\033[5m'
 ANSI_RESET = '\033[0m'
+
 
 def ldap_bind():
     try:
@@ -72,17 +73,18 @@ def apachedb_bind():
     return db
 
 
-def search_ldapou(groupOU, hostOU, searchFilter, retrieveAttributes=myRAttrs, searchScope=mySScope,
-                  baseDN=myBaseDN):
+def search_ldapou(groupOU, hostOU, searchFilter, retrieveAttributes=myRAttrs,
+                  searchScope=mySScope, baseDN=myBaseDN):
     try:
         lcon = ldap_bind()
         string = ''
         if groupOU is not None:
             string += 'ou={},'.format(groupOU)
-        if hostOU  is not None:
+        if hostOU is not None:
             string += 'ou={},'.format(hostOU)
         string += '{}'.format(baseDN)
-        ldap_result_id = lcon.search(string, searchScope, searchFilter,  retrieveAttributes)
+        ldap_result_id = lcon.search(string, searchScope, searchFilter,
+                                     retrieveAttributes)
         result_set = []
         while 1:
             result_type, result_data = lcon.result(ldap_result_id, 0)
@@ -199,39 +201,49 @@ def add_group(groupName, groupOU, hostOU, baseDN=myBaseDN):
     except ldap.LDAPError, e:
         print 'add_group() error: ' + str(e)
     else:
-         print 'Success?'
+        print 'Success?'
     lcon.unbind()
 
 
-
 # Parse ldap result and return human readable form
-def parse_ldapuser(user, group_ou = None , base_dn = myBaseDN):
+def parse_ldapuser(user, group_ou=None, base_dn=myBaseDN):
     ret = ''
     for u in user:
-        #
+        # cn
         if 'cn' in u[1] and u[1]['cn'][0] is not None:
             ret += 'Name:{}{}\n'.format(ANSI_TAB, u[1]['cn'][0])
-        #
+        # gecos
         if 'gecos' in u[1] and u[1]['gecos'][0] is not None:
                 ret += 'Gecos:{}{}\n'.format(ANSI_TAB, u[1]['gecos'][0])
-        #
+        # uid
         if 'uid' in u[1] and u[1]['uid'][0] is not None:
             ret += 'User:{}{}\n'.format(ANSI_TAB, u[1]['uid'][0])
-        #
+        # uidNumber
         if 'uidNumber' in u[1] and u[1]['uidNumber'][0] is not None:
             ret += 'Uid:{}{}\n'.format(ANSI_TAB, u[1]['uidNumber'][0])
+        # gidNumber
         if 'gidNumber' in u[1] and u[1]['gidNumber'][0] is not None:
             ret += 'Gid:{}{}\n'.format(ANSI_TAB, u[1]['gidNumber'][0])
             if 'uid' in u[1] and u[1]['uid'][0] is not None:
-                ret += 'Groups:{}'.format(ANSI_TAB, ldap_find_group_membership(u[1]['uid'][0], None, base_dn))
+                ret += 'Groups:{}'.format(ANSI_TAB,
+                                          ldap_find_group_membership(u[1]['uid'][0],
+                                          None,
+                                          base_dn))
+        # homeDirectory
         if 'homeDirectory' in u[1] and u[1]['homeDirectory'][0] is not None:
-            ret += 'Home:{}{}\n'.format(ANSI_TAB, u[1]['homeDirectory'][0])
+            ret += 'Home:{}{}\n'.format(ANSI_TAB,
+                                        u[1]['homeDirectory'][0])
+        # loginShell
         if 'loginShell' in u[1] and u[1]['loginShell'][0] is not None:
-            ret += 'Shell:{}{}\n'.format(ANSI_TAB, u[1]['loginShell'][0])
+            ret += 'Shell:{}{}\n'.format(ANSI_TAB,
+                                         u[1]['loginShell'][0])
+        # mail
         if 'mail' in u[1] and u[1]['mail'][0] is not None:
             ret += 'EMail: '
             for mail in u[1]['mail']:
-                ret += '{}{}\n'.format(ANSI_TAB, mail)
+                ret += '{}{}\n'.format(ANSI_TAB,
+                                       mail)
+        # shadowExpire
         if 'shadowExpire' in u[1] and u[1]['shadowExpire'][0] is not None:
             ret += 'Expire:{}'.format(ANSI_TAB)
             expired = ldap_is_timestamp_expired(u[1]['shadowExpire'][0])
@@ -243,8 +255,9 @@ def parse_ldapuser(user, group_ou = None , base_dn = myBaseDN):
             ret += '\n'
         else:
             ret += 'Expire:{}No expiry\n'.format(ANSI_TAB)
+        # sadowLasteChange
         if 'shadowLastChange' in u[1] and u[1]['shadowLastChange'][0] is not None:
-            ret += 'Shadow:{}'.format(ANSI_TAB)
+            ret += 'Passwd:{}'.format(ANSI_TAB)
             expired = ldap_is_timestamp_expired(int(u[1]['shadowLastChange'][0]) + int(u[1]['shadowMax'][0]))
             if expired:
                 ret += ANSI_BOLD + ANSI_RED + ANSI_BLINK
@@ -258,23 +271,26 @@ def parse_ldapuser(user, group_ou = None , base_dn = myBaseDN):
 def ldap_timestamp_to_date(timestamp):
     return (datetime.utcfromtimestamp(int(timestamp) * SECONDS_IN_DAY).strftime('%d/%m %Y'))
 
+
 # Return todays date in LDAP
 def ldap_timestamp_today():
     return (calendar.timegm(datetime.today().utctimetuple()) / SECONDS_IN_DAY)
+
 
 # return timestamp with number of years added
 def ldap_timestamp_add_years(timestamp, years):
     return int(timestamp) + (years * 365)
 
-def ldap_find_group_membership(uid, group_ou = None, base_dn = myBaseDN):
+
+def ldap_find_group_membership(uid, group_ou=None, base_dn=myBaseDN):
     result = search_ldapou(group_ou, base_dn, '(&(objectClass=posixGroup)(memberUid={}))'.format(uid))
     ret = ''
     for group in result:
         ret += '{}{} ({})\n'.format(ANSI_TAB, group[0][1]['cn'][0], group[0][1]['gidNumber'][0])
     return ret
 
+
 def ldap_is_timestamp_expired(timestamp):
     if int(timestamp) < ldap_timestamp_today():
         return True
     return False
-
