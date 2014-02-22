@@ -31,7 +31,8 @@ while cont is False:
 streng = streng + common.read_input('Angi søkestreng: ')
 
 resultat = []
-resultat = dldap.search_ldapou(ou1, ou2, streng, ['uid', 'uidNumber', 'cn', 'homeDirectory', 'loginShell', 'mail'])
+resultat = dldap.search_ldapou(ou1, ou2, streng, ['shadowExpire', 'gecos', 'uid', 'gidNumber', 'uidNumber', 'cn', 'homeDirectory', 'loginShell', 'mail', 'shadowLastChange', 'shadowMax'])
 
 for res in resultat:
-    print(res)
+    dldap.parse_ldapuser(res,ou1,ou2)
+

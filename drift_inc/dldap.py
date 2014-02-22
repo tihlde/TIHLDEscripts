@@ -14,6 +14,9 @@ import random
 import smtplib
 from email.MIMEMultipart import MIMEMultipart
 from email.MIMEText import MIMEText
+from datetime import datetime, timedelta
+import calendar
+from pprint import pprint
 
 notifyToEmail = 'drift@tihlde.org'
 notifyFromEmail = 'noreply@tihlde.org'
@@ -23,6 +26,12 @@ myBaseDN = 'dc=tihlde,dc=org'
 mySScope = ldap.SCOPE_SUBTREE
 myRAttrs = None
 
+SECONDS_IN_DAY = 86400
+ANSI_TAB = '\011'
+ANSI_BOLD = '\033[1m'
+ANSI_RED = '\033[31m'
+ANSI_BLINK = '\033[5m'
+ANSI_RESET = '\033[0m'
 
 def ldap_bind():
     try:
@@ -37,7 +46,7 @@ def ldap_bind():
         lcon.simple_bind_s(username, password)
     except ldap.LDAPError, e:
         print 'ldap_bind() error: ' + str(e)
-        print 'Debug: ' + ldapServer + ' ' + username + ' ' + password
+        #print 'Debug: ' + ldapServer + ' ' + username + ' ' + password
         sys.exit('Fatal feil. Kunne ikke koble til LDAP Tjener')
     else:
         return lcon
@@ -67,9 +76,13 @@ def search_ldapou(groupOU, hostOU, searchFilter, retrieveAttributes=myRAttrs, se
                   baseDN=myBaseDN):
     try:
         lcon = ldap_bind()
-        ldap_result_id = lcon.search('ou=' + groupOU + ', ou=' + hostOU + ', '
-                                     + baseDN, searchScope, searchFilter,
-                                     retrieveAttributes)
+        string = ''
+        if groupOU is not None:
+            string += 'ou={},'.format(groupOU)
+        if hostOU  is not None:
+            string += 'ou={},'.format(hostOU)
+        string += '{}'.format(baseDN)
+        ldap_result_id = lcon.search(string, searchScope, searchFilter,  retrieveAttributes)
         result_set = []
         while 1:
             result_type, result_data = lcon.result(ldap_result_id, 0)
@@ -188,3 +201,80 @@ def add_group(groupName, groupOU, hostOU, baseDN=myBaseDN):
     else:
          print 'Success?'
     lcon.unbind()
+
+
+
+# Parse ldap result and return human readable form
+def parse_ldapuser(user, group_ou = None , base_dn = myBaseDN):
+    ret = ''
+    for u in user:
+        #
+        if 'cn' in u[1] and u[1]['cn'][0] is not None:
+            ret += 'Name:{}{}\n'.format(ANSI_TAB, u[1]['cn'][0])
+        #
+        if 'gecos' in u[1] and u[1]['gecos'][0] is not None:
+                ret += 'Gecos:{}{}\n'.format(ANSI_TAB, u[1]['gecos'][0])
+        #
+        if 'uid' in u[1] and u[1]['uid'][0] is not None:
+            ret += 'User:{}{}\n'.format(ANSI_TAB, u[1]['uid'][0])
+        #
+        if 'uidNumber' in u[1] and u[1]['uidNumber'][0] is not None:
+            ret += 'Uid:{}{}\n'.format(ANSI_TAB, u[1]['uidNumber'][0])
+        if 'gidNumber' in u[1] and u[1]['gidNumber'][0] is not None:
+            ret += 'Gid:{}{}\n'.format(ANSI_TAB, u[1]['gidNumber'][0])
+            if 'uid' in u[1] and u[1]['uid'][0] is not None:
+                ret += 'Groups:{}'.format(ANSI_TAB, ldap_find_group_membership(u[1]['uid'][0], None, base_dn))
+        if 'homeDirectory' in u[1] and u[1]['homeDirectory'][0] is not None:
+            ret += 'Home:{}{}\n'.format(ANSI_TAB, u[1]['homeDirectory'][0])
+        if 'loginShell' in u[1] and u[1]['loginShell'][0] is not None:
+            ret += 'Shell:{}{}\n'.format(ANSI_TAB, u[1]['loginShell'][0])
+        if 'mail' in u[1] and u[1]['mail'][0] is not None:
+            ret += 'EMail: '
+            for mail in u[1]['mail']:
+                ret += '{}{}\n'.format(ANSI_TAB, mail)
+        if 'shadowExpire' in u[1] and u[1]['shadowExpire'][0] is not None:
+            ret += 'Expire:{}'.format(ANSI_TAB)
+            expired = ldap_is_timestamp_expired(u[1]['shadowExpire'][0])
+            if expired:
+                ret += ANSI_BOLD + ANSI_RED + ANSI_BLINK
+            ret += '{}'.format(ldap_timestamp_to_date(float(u[1]['shadowExpire'][0])))
+            if expired:
+                ret += ANSI_RESET
+            ret += '\n'
+        else:
+            ret += 'Expire:{}No expiry\n'.format(ANSI_TAB)
+        if 'shadowLastChange' in u[1] and u[1]['shadowLastChange'][0] is not None:
+            ret += 'Shadow:{}'.format(ANSI_TAB)
+            expired = ldap_is_timestamp_expired(int(u[1]['shadowLastChange'][0]) + int(u[1]['shadowMax'][0]))
+            if expired:
+                ret += ANSI_BOLD + ANSI_RED + ANSI_BLINK
+            ret += '{}'.format(ldap_timestamp_to_date(float(int(u[1]['shadowLastChange'][0]) + int(u[1]['shadowMax'][0]))))
+            if expired:
+                ret += ANSI_RESET
+            ret += '\n'
+    print(ret)
+
+
+def ldap_timestamp_to_date(timestamp):
+    return (datetime.utcfromtimestamp(int(timestamp) * SECONDS_IN_DAY).strftime('%d/%m %Y'))
+
+# Return todays date in LDAP
+def ldap_timestamp_today():
+    return (calendar.timegm(datetime.today().utctimetuple()) / SECONDS_IN_DAY)
+
+# return timestamp with number of years added
+def ldap_timestamp_add_years(timestamp, years):
+    return int(timestamp) + (years * 365)
+
+def ldap_find_group_membership(uid, group_ou = None, base_dn = myBaseDN):
+    result = search_ldapou(group_ou, base_dn, '(&(objectClass=posixGroup)(memberUid={}))'.format(uid))
+    ret = ''
+    for group in result:
+        ret += '{}{} ({})\n'.format(ANSI_TAB, group[0][1]['cn'][0], group[0][1]['gidNumber'][0])
+    return ret
+
+def ldap_is_timestamp_expired(timestamp):
+    if int(timestamp) < ldap_timestamp_today():
+        return True
+    return False
+
