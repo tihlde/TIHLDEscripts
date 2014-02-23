@@ -16,7 +16,7 @@ import random
 #from email.MIMEText import MIMEText
 from datetime import datetime
 import calendar
-#from pprint import pprint
+from pprint import pprint
 
 notifyToEmail = 'drift@tihlde.org'
 notifyFromEmail = 'noreply@tihlde.org'
@@ -209,59 +209,60 @@ def add_group(groupName, groupOU, hostOU, baseDN=myBaseDN):
 def parse_ldapuser(user, group_ou=None, base_dn=myBaseDN):
     ret = ''
     for u in user:
+        u = u[1]
         # cn
-        if 'cn' in u[1] and u[1]['cn'][0] is not None:
-            ret += 'Name:{}{}\n'.format(ANSI_TAB, u[1]['cn'][0])
+        if 'cn' in u and u['cn'][0] is not None:
+            ret += 'Name:{}{}\n'.format(ANSI_TAB, u['cn'][0])
         # gecos
-        if 'gecos' in u[1] and u[1]['gecos'][0] is not None:
-                ret += 'Gecos:{}{}\n'.format(ANSI_TAB, u[1]['gecos'][0])
+        if 'gecos' in u and u['gecos'][0] is not None:
+                ret += 'Gecos:{}{}\n'.format(ANSI_TAB, u['gecos'][0])
         # uid
-        if 'uid' in u[1] and u[1]['uid'][0] is not None:
-            ret += 'User:{}{}\n'.format(ANSI_TAB, u[1]['uid'][0])
+        if 'uid' in u and u['uid'][0] is not None:
+            ret += 'User:{}{}\n'.format(ANSI_TAB, u['uid'][0])
         # uidNumber
-        if 'uidNumber' in u[1] and u[1]['uidNumber'][0] is not None:
-            ret += 'Uid:{}{}\n'.format(ANSI_TAB, u[1]['uidNumber'][0])
+        if 'uidNumber' in u and u['uidNumber'][0] is not None:
+            ret += 'Uid:{}{}\n'.format(ANSI_TAB, u['uidNumber'][0])
         # gidNumber
-        if 'gidNumber' in u[1] and u[1]['gidNumber'][0] is not None:
-            ret += 'Gid:{}{}\n'.format(ANSI_TAB, u[1]['gidNumber'][0])
-            if 'uid' in u[1] and u[1]['uid'][0] is not None:
-                ret += 'Groups:{}'.format(ANSI_TAB,
-                                          ldap_find_group_membership(u[1]['uid'][0],
-                                          None,
-                                          base_dn))
+        if 'gidNumber' in u and u['gidNumber'][0] is not None:
+            ret += 'Groups:'
+            for gid,gname in ldap_find_group_membership(u['uid'][0], None, base_dn).iteritems():
+                ret += '{}{} ({})\n'.format(ANSI_TAB, gname, gid)
+            #ret += 'Gid:{}{}\n'.format(ANSI_TAB, u['gidNumber'][0])
+            #if 'uid' in u and u['uid'][0] is not None:
+            #    ret += 'Groups:{}'.format(ldap_find_group_membership(u['uid'][0], None, base_dn))
         # homeDirectory
-        if 'homeDirectory' in u[1] and u[1]['homeDirectory'][0] is not None:
+        if 'homeDirectory' in u and u['homeDirectory'][0] is not None:
             ret += 'Home:{}{}\n'.format(ANSI_TAB,
-                                        u[1]['homeDirectory'][0])
+                                        u['homeDirectory'][0])
         # loginShell
-        if 'loginShell' in u[1] and u[1]['loginShell'][0] is not None:
+        if 'loginShell' in u and u['loginShell'][0] is not None:
             ret += 'Shell:{}{}\n'.format(ANSI_TAB,
-                                         u[1]['loginShell'][0])
+                                         u['loginShell'][0])
         # mail
-        if 'mail' in u[1] and u[1]['mail'][0] is not None:
+        if 'mail' in u and u['mail'][0] is not None:
             ret += 'EMail: '
-            for mail in u[1]['mail']:
+            for mail in u['mail']:
                 ret += '{}{}\n'.format(ANSI_TAB,
                                        mail)
         # shadowExpire
-        if 'shadowExpire' in u[1] and u[1]['shadowExpire'][0] is not None:
+        if 'shadowExpire' in u and u['shadowExpire'][0] is not None:
             ret += 'Expire:{}'.format(ANSI_TAB)
-            expired = ldap_is_timestamp_expired(u[1]['shadowExpire'][0])
+            expired = ldap_is_timestamp_expired(u['shadowExpire'][0])
             if expired:
                 ret += ANSI_BOLD + ANSI_RED + ANSI_BLINK
-            ret += '{}'.format(ldap_timestamp_to_date(float(u[1]['shadowExpire'][0])))
+            ret += '{}'.format(ldap_timestamp_to_date(float(u['shadowExpire'][0])))
             if expired:
                 ret += ANSI_RESET
             ret += '\n'
         else:
             ret += 'Expire:{}No expiry\n'.format(ANSI_TAB)
         # sadowLasteChange
-        if 'shadowLastChange' in u[1] and u[1]['shadowLastChange'][0] is not None:
+        if 'shadowLastChange' in u and u['shadowLastChange'][0] is not None:
             ret += 'Passwd:{}'.format(ANSI_TAB)
-            expired = ldap_is_timestamp_expired(int(u[1]['shadowLastChange'][0]) + int(u[1]['shadowMax'][0]))
+            expired = ldap_is_timestamp_expired(int(u['shadowLastChange'][0]) + int(u['shadowMax'][0]))
             if expired:
                 ret += ANSI_BOLD + ANSI_RED + ANSI_BLINK
-            ret += '{}'.format(ldap_timestamp_to_date(float(int(u[1]['shadowLastChange'][0]) + int(u[1]['shadowMax'][0]))))
+            ret += '{}'.format(ldap_timestamp_to_date(float(int(u['shadowLastChange'][0]) + int(u['shadowMax'][0]))))
             if expired:
                 ret += ANSI_RESET
             ret += '\n'
@@ -281,15 +282,24 @@ def ldap_timestamp_today():
 def ldap_timestamp_add_years(timestamp, years):
     return int(timestamp) + (years * 365)
 
-
+# return a dictionaru with group names and ids a username is member of.
+# first entry will be the primary membership
 def ldap_find_group_membership(uid, group_ou=None, base_dn=myBaseDN):
+    result = search_ldapou(group_ou, base_dn, 'uid={}'.format(uid), ['gidNumber'])
+    gid = result[0][0][1]['gidNumber'][0]
+    result = search_ldapou(group_ou, base_dn, '(&(objectClass=posixGroup)(gidNumber={}))'.format(gid))
+    gname = result[0][0][1]['cn'][0]
+    ret = {gid: gname}
+    #ret = '{}{} ({}) (primary)\n'.format(ANSI_TAB, gname, gid)
     result = search_ldapou(group_ou, base_dn, '(&(objectClass=posixGroup)(memberUid={}))'.format(uid))
-    ret = ''
     for group in result:
-        ret += '{}{} ({})\n'.format(ANSI_TAB, group[0][1]['cn'][0], group[0][1]['gidNumber'][0])
+        group = group[0][1]
+        ret[group['gidNumber'][0]] = group['cn'][0]
+        #ret += '{}{} ({})\n'.format(ANSI_TAB, group[0][1]['cn'][0], group[0][1]['gidNumber'][0])
+    #pprint(ret)
     return ret
 
-
+# Simple function to compare timestamp against NOW and return true if its older.
 def ldap_is_timestamp_expired(timestamp):
     if int(timestamp) < ldap_timestamp_today():
         return True
