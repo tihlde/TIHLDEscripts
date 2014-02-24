@@ -2,6 +2,10 @@
 # -*- coding: UTF-8 -*-
 # vim: set fileencoding=UTF-8 :
 
+__author__ = "Thomas Juberg (thomas.juberg 'at' tihlde.org)"
+__copyright__ = "Copyright (C) 2014 Trondheim Ingeniørhøgskoles Linjeforening for Dannede EDBere (TIHLDE)"
+__license__ = "Apache License 2.0"
+
 from drift_inc import common
 from drift_inc import dldap
 import argparse

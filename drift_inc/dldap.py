@@ -1,6 +1,10 @@
 # -*- coding: UTF-8 -*-
 # vim: set fileencoding=UTF-8 :
 
+__author__ = "Christopher McDowell (christmc 'at' tihlde.org), Thomas Juberg (thomas.juberg 'at' tihlde.org)"
+__copyright__ = "Copyright (C) 2014 Trondheim Ingeniørhøgskoles Linjeforening for Dannede EDBere (TIHLDE)"
+__license__ = "Apache License 2.0"
+
 import ldap
 import string
 import sys

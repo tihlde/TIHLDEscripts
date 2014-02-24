@@ -2,6 +2,10 @@ import urllib2
 import ldap
 from os import geteuid
 
+__author__ = "Bjørn Gilstad (bjorngi 'at' tihlde.org)"
+__copyright__ = "Copyright (C) 2014 Trondheim Ingeniørhøgskoles Linjeforening for Dannede EDBere (TIHLDE)"
+__license__ = "Apache License 2.0"
+
 # API url
 if geteuid() != 0:
             exit("You need to have root privileges to run this script.\nPlease try again, this time using 'sudo'. Exiting.")
