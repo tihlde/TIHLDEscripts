@@ -209,6 +209,17 @@ def add_group(groupName, groupOU, hostOU, baseDN=myBaseDN):
     lcon.unbind()
 
 
+def parse_ldapmail(user, group_ou=None, base_dn=myBaseDN):
+    address = []
+    for u in user:
+        u = u[1]
+
+        if 'mail' in u and u['mail'][0] is not None:
+            for mail in u['mail']:
+                address.append(mail)
+    return address
+
+
 # Parse ldap result and return human readable form
 def parse_ldapuser(user, group_ou=None, base_dn=myBaseDN):
     ret = ''
