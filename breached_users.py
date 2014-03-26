@@ -1,3 +1,5 @@
+#!/usr/bin/env python
+# -*- coding: utf-8 -*-
 import urllib2
 import ldap
 from os import geteuid
@@ -19,7 +21,7 @@ emails.append('test2@test.com')
 
 breached_users = []
 
-for x in emails:
+for email in emails:
     try:
         response = urllib2.urlopen(api_url+email).read()
         print(response)
