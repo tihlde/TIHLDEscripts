@@ -57,26 +57,6 @@ def ldap_bind():
         return lcon
 
 
-# Connection to the medlemsregister database
-def medlemsregister_bind():
-    f = open('/home/staff/drift/passord/db-medlemsregister', 'r')
-    db = MySQLdb.connect(host='localhost',
-                         user='medlemsregister',
-                         passwd=f.next().strip(),
-                         db='medlemsregister')
-    return db
-
-
-# Connection to the apache database
-def apachedb_bind():
-    f = open('/home/staff/drift/passord/db-apache', 'r')
-    db = MySQLdb.connect(host='localhost',
-                         user='apache',
-                         passwd=f.next().strip(),
-                         db='apache')
-    return db
-
-
 def search_ldapou(groupOU, hostOU, searchFilter, retrieveAttributes=myRAttrs,
                   searchScope=mySScope, baseDN=myBaseDN):
     try:
