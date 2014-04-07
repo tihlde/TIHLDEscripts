@@ -1,30 +1,45 @@
+#!/usr/bin/env python
+# -*- coding: utf-8 -*-
 import urllib2
-import ldap
+import json
+from drift_inc import dldap
 from os import geteuid
 
 __author__ = "Bjørn Gilstad (bjorngi 'at' tihlde.org)"
-__copyright__ = "Copyright (C) 2014 Trondheim Ingeniørhøgskoles Linjeforening for Dannede EDBere (TIHLDE)"
+__copyright__ = "Copyright (C) 2014 Trondheim Ingeniørhøgskoles" \
+                "Linjeforening for Dannede EDBere (TIHLDE)"
 __license__ = "Apache License 2.0"
 
 # API url
 if geteuid() != 0:
-            exit("You need to have root privileges to run this script.\nPlease try again, this time using 'sudo'. Exiting.")
+            exit("You need to have root privileges to run this script."
+                 "\nPlease try again, this time using 'sudo'. Exiting.")
 
 api_url = 'https://haveibeenpwned.com/api/v2/breachedaccount/'
 
-#Initiation email array
+ou1 = 'Brukere'
+ou2 = 'Colargol'
+
+resultat = dldap.search_ldapou(ou1, ou2, 'cn=*', ['mail'])
+ldapaddress = []
+for res in resultat:
+    ldapaddress.append(dldap.parse_ldapmail(res, ou1, ou2))
+
 emails = []
-emails.append('test@test.com')
-emails.append('test2@test.com')
+for mails in ldapaddress:
+    for mail in mails:
+        emails.append(mail)
 
-breached_users = []
+#testemails = ['test@test.com']
 
-for x in emails:
+# TODO: Gjøre noe mer fornuftig enn å skrive de ut til skjerm
+for email in emails:
     try:
         response = urllib2.urlopen(api_url+email).read()
-        print(response)
+        json_data = json.loads(response)
+        print email + " has been compromised in the following places: "
+        for i in json_data:
+            print i.get('Name')
 
     except urllib2.HTTPError:
-        print('Not found')
-
-
+        pass

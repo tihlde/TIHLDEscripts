@@ -57,26 +57,6 @@ def ldap_bind():
         return lcon
 
 
-# Connection to the medlemsregister database
-def medlemsregister_bind():
-    f = open('/home/staff/drift/passord/db-medlemsregister', 'r')
-    db = MySQLdb.connect(host='localhost',
-                         user='medlemsregister',
-                         passwd=f.next().strip(),
-                         db='medlemsregister')
-    return db
-
-
-# Connection to the apache database
-def apachedb_bind():
-    f = open('/home/staff/drift/passord/db-apache', 'r')
-    db = MySQLdb.connect(host='localhost',
-                         user='apache',
-                         passwd=f.next().strip(),
-                         db='apache')
-    return db
-
-
 def search_ldapou(groupOU, hostOU, searchFilter, retrieveAttributes=myRAttrs,
                   searchScope=mySScope, baseDN=myBaseDN):
     try:
@@ -207,6 +187,17 @@ def add_group(groupName, groupOU, hostOU, baseDN=myBaseDN):
     else:
         print 'Success?'
     lcon.unbind()
+
+
+def parse_ldapmail(user, group_ou=None, base_dn=myBaseDN):
+    address = []
+    for u in user:
+        u = u[1]
+
+        if 'mail' in u and u['mail'][0] is not None:
+            for mail in u['mail']:
+                address.append(mail)
+    return address
 
 
 # Parse ldap result and return human readable form
