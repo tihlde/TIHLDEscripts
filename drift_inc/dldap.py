@@ -181,7 +181,7 @@ def highid(idType, groupOU, hostOU, searchScope=mySScope, baseDN=myBaseDN):
                     idNumber = int(tmpid)
         except ldap.LDAPError, e:
             print e
-            break
+            idNumber = 0
         idNumber += 1  # adds one to the idNumber so it starts with a number
                        # which is not in use
         lcon.unbind()
@@ -308,3 +308,48 @@ def ldap_is_timestamp_expired(timestamp):
     if int(timestamp) < ldap_timestamp_today():
         return True
     return False
+
+
+# Function to add new users
+def ldap_add_user(uid, secondary_gid, navn, email, ):
+    uid_number = highid(1)
+    gid_number = highid(2)
+
+def ldap_add_lan(count):
+    lcon = ldap_bind()
+    expire = ldap_timestamp_today() + 7
+    shadow = ldap_timestamp_today()
+    random_id = random.randint(1000, 9999)
+    uid_number = highid(1, 'LAN', 'Colargol')
+    i = 0
+    while i < count:
+        rawpw = pw_generator()
+        ldappw = ldappassword(rawpw) 
+        id = '{}{}'.format(random_id, i)
+        dn = "uid=lanbruker" + id + ",ou=LAN,ou=Colargol,dc=tihlde,dc=org"
+        attrs = {}
+        attrs['objectclass'] = ['top', 'person', 'organizationalPerson', 'inetOrgPerson', 'posixAccount', 'shadowAccount']
+        attrs['cn'] = 'Lan Bruker {}'.format(id)
+        attrs['givenName'] = 'Lan'
+        attrs['sn'] = 'Bruker'
+        attrs['uidNumber'] = str(uid_number)
+        attrs['gidNumber'] = '6057'
+        attrs['homeDirectory'] = '/home/lan/lanbruker{}'.format(id)
+        attrs['shadowLastChange'] = str(shadow)
+        attrs['shadowMax'] = '4'
+        attrs['shadowWarning'] = '1'
+        attrs['shadowExpire'] =  str(expire)
+        attrs['userPassword'] = ldappw
+        ldif = modlist.addModlist(attrs)
+        try: 
+            lcon.add_s(dn,ldif)
+
+            print('Brukernavn: lanbruker{}\nPassord: {}\n\n'.format(id, rawpw))
+            i += 1
+            uid_number += 1
+
+        except ldap.LDAPError, e:
+            print e
+            break
+
+    lcon.unbind()
