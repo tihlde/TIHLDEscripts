@@ -3,7 +3,7 @@
 # vim: set fileencoding=UTF-8 :
 
 __author__ = "Thomas Juberg (thomas.juberg 'at' tihlde.org)"
- __copyright__ = "Copyright (C) 2014 Trondheim Ingeniørhøgskoles Linjeforening for Dannede EDBere (TIHLDE)"
+__copyright__ = "Copyright (C) 2014 Trondheim Ingeniørhøgskoles Linjeforening for Dannede EDBere (TIHLDE)"
 __license__ = "Apache License 2.0"
 
 from os import sys, geteuid, path

@@ -65,8 +65,8 @@ def ldap_bind():
                     if words[0] == "uri":
                         ldapServer = words[1]
 
-            with open('/etc/pam_ldap.secret', 'r') as f
-            password = f.next().strip()
+            with open('/etc/pam_ldap.secret', 'r') as f:
+                password = f.next().strip()
 
         lcon = ldap.initialize(ldapServer)
         lcon.simple_bind_s(username, password)
