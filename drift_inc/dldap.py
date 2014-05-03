@@ -24,9 +24,8 @@ from pprint import pprint
 
 notifyToEmail = 'drift@tihlde.org'
 notifyFromEmail = 'noreply@tihlde.org'
-ldapUsername = 'admin'
-ldapServer = 'ldap://127.0.0.1:389'
-myBaseDN = 'dc=tihlde,dc=org'
+ldapServer = None
+myBaseDN = None
 mySScope = ldap.SCOPE_SUBTREE
 myRAttrs = None
 
@@ -41,18 +40,40 @@ ANSI_RESET = '\033[0m'
 def ldap_bind():
     try:
         global myBaseDN
-        global ldapUsername
         global ldapServer
-        username = 'cn=' + ldapUsername + ',' + myBaseDN
-        f = open('/etc/pam_ldap.secret', 'r')  # opens the ldap-password file
-        password = f.next().strip()  # reads the password from the file
-                                     # and strips the whitespaces
+
+        if os.path.isfile("/etc/nslcd.conf"):
+            with open('/etc/nslcd.conf', 'r') as f:
+                for line in f:
+                    words = line.split()
+                    if words[0] == "rootpwmoddn":
+                        username = words[1]
+                    if words[0] == "rootpwmodpw":
+                        password = words[1]
+                    if words[0] == "uri":
+                        ldapServer = words[1]
+                    if words[0] == "base":
+                        myBaseDN = words[1]
+        else:
+            with open('/etc/pam_ldap.conf', 'r') as f:
+                for line in f:
+                    words = line.split()
+                    if words[0] == "rootbinddn":
+                        username = words[1]
+                    if words[0] == "base":
+                        myBaseDN = words[1]
+                    if words[0] == "uri":
+                        ldapServer = words[1]
+
+            with open('/etc/pam_ldap.secret', 'r') as f
+            password = f.next().strip()
+
         lcon = ldap.initialize(ldapServer)
         lcon.simple_bind_s(username, password)
     except ldap.LDAPError, e:
         print 'ldap_bind() error: ' + str(e)
         #print 'Debug: ' + ldapServer + ' ' + username + ' ' + password
-        sys.exit('Fatal feil. Kunne ikke koble til LDAP Tjener')
+        sys.exit('Fatal error. Unable to connect to LDAP server.')
     else:
         return lcon
 
