@@ -1,10 +1,14 @@
 #!/usr/bin/env python
 # -*- coding: utf-8 -*-
+from os import sys, geteuid, path
+from inspect import currentframe, getfile
+currentdir = path.dirname(path.abspath(getfile(currentframe())))
+parentdir = path.dirname(currentdir)
+sys.path.insert(0, parentdir) 
 import urllib2
 import json
 import threading
 from drift_inc import dldap
-from os import geteuid
 
 __author__ = "Bjørn Gilstad (bjorngi 'at' tihlde.org)"
 __copyright__ = "Copyright (C) 2014 Trondheim Ingeniørhøgskoles" \

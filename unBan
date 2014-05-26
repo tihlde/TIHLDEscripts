@@ -1,0 +1,3 @@
+#! /bin/bash
+
+sudo iptables -D fail2ban-ssh -s $1 -j DROP

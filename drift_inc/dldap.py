@@ -8,25 +8,19 @@ __license__ = "Apache License 2.0"
 import ldap
 import string
 import sys
-import MySQLdb
 import ldap.modlist as modlist
 import re
 import base64
 import hashlib
 import os
 import random
-#import smtplib
-#from email.MIMEMultipart import MIMEMultipart
-#from email.MIMEText import MIMEText
 from datetime import datetime
 import calendar
-from pprint import pprint
 
 notifyToEmail = 'drift@tihlde.org'
 notifyFromEmail = 'noreply@tihlde.org'
-ldapUsername = 'admin'
-ldapServer = 'ldap://127.0.0.1:389'
-myBaseDN = 'dc=tihlde,dc=org'
+# ldapServer = None
+# myBaseDN = None
 mySScope = ldap.SCOPE_SUBTREE
 myRAttrs = None
 
@@ -39,55 +33,53 @@ ANSI_RESET = '\033[0m'
 
 
 def ldap_bind():
+    global myBaseDN
+    global ldapServer
+
     try:
-        global myBaseDN
-        global ldapUsername
-        global ldapServer
-        username = 'cn=' + ldapUsername + ',' + myBaseDN
-        f = open('/etc/pam_ldap.secret', 'r')  # opens the ldap-password file
-        password = f.next().strip()  # reads the password from the file
-                                     # and strips the whitespaces
+        if os.path.isfile('/etc/nslcd.conf'):
+            with open('/etc/nslcd.conf', 'r') as f:
+                for line in f:
+                    words = line.split()
+                    if len(words) > 1:
+                        if words[0] == "rootpwmoddn":
+                            username = words[1]
+                        if words[0] == "rootpwmodpw":
+                            password = words[1]
+                        if words[0] == "uri":
+                            ldapServer = words[1]
+                        if words[0] == "base":
+                            myBaseDN = words[1]
+        else:
+            with open('/etc/pam_ldap.conf', 'r') as f:
+                for line in f:
+                    words = line.split()
+                    if len(words) > 1:
+                        if words[0] == "rootbinddn":
+                            username = words[1]
+                        if words[0] == "base":
+                            myBaseDN = words[1]
+                        if words[0] == "uri":
+                            ldapServer = words[1]
+
+            with open('/etc/pam_ldap.secret', 'r') as f:
+                password = f.next().strip()
+
         lcon = ldap.initialize(ldapServer)
         lcon.simple_bind_s(username, password)
     except ldap.LDAPError, e:
         print 'ldap_bind() error: ' + str(e)
-        #print 'Debug: ' + ldapServer + ' ' + username + ' ' + password
-        sys.exit('Fatal feil. Kunne ikke koble til LDAP Tjener')
+        sys.exit('Fatal error. Unable to connect to LDAP server.')
     else:
         return lcon
 
 
-# Connection to the medlemsregister database
-def medlemsregister_bind():
-    f = open('/home/staff/drift/passord/db-medlemsregister', 'r')
-    db = MySQLdb.connect(host='localhost',
-                         user='medlemsregister',
-                         passwd=f.next().strip(),
-                         db='medlemsregister')
-    return db
-
-
-# Connection to the apache database
-def apachedb_bind():
-    f = open('/home/staff/drift/passord/db-apache', 'r')
-    db = MySQLdb.connect(host='localhost',
-                         user='apache',
-                         passwd=f.next().strip(),
-                         db='apache')
-    return db
-
-
 def search_ldapou(groupOU, hostOU, searchFilter, retrieveAttributes=myRAttrs,
-                  searchScope=mySScope, baseDN=myBaseDN):
+                  searchScope=mySScope, baseDN=None):
     try:
         lcon = ldap_bind()
-        string = ''
-        if groupOU is not None:
-            string += 'ou={},'.format(groupOU)
-        if hostOU is not None:
-            string += 'ou={},'.format(hostOU)
-        string += '{}'.format(baseDN)
-        ldap_result_id = lcon.search(string, searchScope, searchFilter,
+        myDN = build_dn(groupOU, hostOU, baseDN)
+        ldap_result_id = lcon.search(myDN, searchScope, searchFilter,
                                      retrieveAttributes)
         result_set = []
         while 1:
@@ -116,7 +108,7 @@ def pw_generator(size=12, chars=string.ascii_uppercase + string.digits
 def ldappassword(rawpass):
     salt = os.urandom(26)  # edit the length as you see fit
     return '{SSHA}' + base64.b64encode(hashlib.sha1(rawpass + salt).digest()
-           + salt)
+                                       + salt)
 
 
 # Changes unicode chars to actual characters
@@ -139,8 +131,31 @@ def denorify(name):
     return name
 
 
+def build_dn(groupOU, hostOU, baseDN):
+    string = ''
+    if groupOU is not None:
+        string += 'ou={},'.format(groupOU)
+    if hostOU is not None:
+        string += 'ou={},'.format(hostOU)
+    if baseDN is not None:
+        string += '{}'.format(baseDN)
+    else:
+        global myBaseDN
+        string += '{}'.format(myBaseDN)
+    return string
+
+
+def build_base_dn(baseDN):
+    if baseDN is not None:
+        string = '{}'.format(baseDN)
+    else:
+        global myBaseDN
+        string = '{}'.format(myBaseDN)
+    return string
+
+
 # Returns highest free id of given type on given server in given OUs of BaseDN
-def highid(idType, groupOU, hostOU, searchScope=mySScope, baseDN=myBaseDN):
+def highid(idType, groupOU, hostOU, searchScope=mySScope, baseDN=None):
     lcon = ldap_bind()
     i = 0
     idNumber = 0
@@ -164,8 +179,8 @@ def highid(idType, groupOU, hostOU, searchScope=mySScope, baseDN=myBaseDN):
     # Loop for getting the highest possible idNumber in use
     while True:
         try:
-            ldap_result_id = lcon.search('ou=' + groupOU + ', ou=' + hostOU
-                                         + ', ' + baseDN, searchScope,
+            myDN = build_dn(groupOU, hostOU, baseDN)
+            ldap_result_id = lcon.search(myDN, searchScope,
                                          searchFilter, retrieveAttributes)
             result_set = []
             while 1:
@@ -181,19 +196,19 @@ def highid(idType, groupOU, hostOU, searchScope=mySScope, baseDN=myBaseDN):
                     idNumber = int(tmpid)
         except ldap.LDAPError, e:
             print e
-            break
-        idNumber += 1  # adds one to the idNumber so it starts with a number
-                       # which is not in use
+            idNumber = 0
+
+        idNumber += 1
         lcon.unbind()
         return idNumber
 
 
-def add_group(groupName, groupOU, hostOU, baseDN=myBaseDN):
+def add_group(groupName, groupOU, hostOU, baseDN=None):
     try:
         group = groupName.lower()
         lcon = ldap_bind()
         gid = highid(2, groupOU, hostOU)
-        dn = 'cn=' + group + ',ou=' + groupOU + ',ou=' + hostOU + ',' + baseDN
+        dn = 'cn=' + group + ',' + build_dn(groupOU, hostOU, baseDN)
         print dn
         attrs = {}
         attrs['objectclass'] = ['posixGroup', 'top']
@@ -209,7 +224,7 @@ def add_group(groupName, groupOU, hostOU, baseDN=myBaseDN):
     lcon.unbind()
 
 
-def parse_ldapmail(user, group_ou=None, base_dn=myBaseDN):
+def parse_ldapmail(user, group_ou=None, base_dn=None):
     address = []
     for u in user:
         u = u[1]
@@ -221,7 +236,8 @@ def parse_ldapmail(user, group_ou=None, base_dn=myBaseDN):
 
 
 # Parse ldap result and return human readable form
-def parse_ldapuser(user, group_ou=None, base_dn=myBaseDN):
+def parse_ldapuser(user, group_ou=None, base_dn=None):
+    base_dn = build_base_dn(base_dn)
     ret = ''
     for u in user:
         u = u[1]
@@ -240,10 +256,11 @@ def parse_ldapuser(user, group_ou=None, base_dn=myBaseDN):
         # gidNumber
         if 'gidNumber' in u and u['gidNumber'][0] is not None:
             ret += 'Groups:'
-            for gid,gname in ldap_find_group_membership(u['uid'][0], None, base_dn).iteritems():
+            for gid,gname in ldap_find_group_membership(u['uid'][0], None,
+                                                        base_dn).iteritems():
                 ret += '{}{} ({})\n'.format(ANSI_TAB, gname, gid)
-            #ret += 'Gid:{}{}\n'.format(ANSI_TAB, u['gidNumber'][0])
-            #if 'uid' in u and u['uid'][0] is not None:
+            # ret += 'Gid:{}{}\n'.format(ANSI_TAB, u['gidNumber'][0])
+            # if 'uid' in u and u['uid'][0] is not None:
             #    ret += 'Groups:{}'.format(ldap_find_group_membership(u['uid'][0], None, base_dn))
         # homeDirectory
         if 'homeDirectory' in u and u['homeDirectory'][0] is not None:
@@ -297,25 +314,73 @@ def ldap_timestamp_today():
 def ldap_timestamp_add_years(timestamp, years):
     return int(timestamp) + (years * 365)
 
+
 # return a dictionaru with group names and ids a username is member of.
 # first entry will be the primary membership
-def ldap_find_group_membership(uid, group_ou=None, base_dn=myBaseDN):
+def ldap_find_group_membership(uid, group_ou=None, base_dn=None):
+    base_dn = build_base_dn(base_dn)
     result = search_ldapou(group_ou, base_dn, 'uid={}'.format(uid), ['gidNumber'])
     gid = result[0][0][1]['gidNumber'][0]
     result = search_ldapou(group_ou, base_dn, '(&(objectClass=posixGroup)(gidNumber={}))'.format(gid))
     gname = result[0][0][1]['cn'][0]
     ret = {gid: gname}
-    #ret = '{}{} ({}) (primary)\n'.format(ANSI_TAB, gname, gid)
+    # ret = '{}{} ({}) (primary)\n'.format(ANSI_TAB, gname, gid)
     result = search_ldapou(group_ou, base_dn, '(&(objectClass=posixGroup)(memberUid={}))'.format(uid))
     for group in result:
         group = group[0][1]
         ret[group['gidNumber'][0]] = group['cn'][0]
-        #ret += '{}{} ({})\n'.format(ANSI_TAB, group[0][1]['cn'][0], group[0][1]['gidNumber'][0])
-    #pprint(ret)
+        # ret += '{}{} ({})\n'.format(ANSI_TAB, group[0][1]['cn'][0], group[0][1]['gidNumber'][0])
     return ret
+
 
 # Simple function to compare timestamp against NOW and return true if its older.
 def ldap_is_timestamp_expired(timestamp):
     if int(timestamp) < ldap_timestamp_today():
         return True
     return False
+
+
+# Function to add new users
+def ldap_add_user(uid, secondary_gid, navn, email, ):
+    uid_number = highid(1)
+    gid_number = highid(2)
+
+
+def ldap_add_lan(count):
+    lcon = ldap_bind()
+    expire = ldap_timestamp_today() + 7
+    shadow = ldap_timestamp_today()
+    random_id = random.randint(1000, 9999)
+    uid_number = highid(1, 'LAN', 'Colargol')
+    i = 0
+    while i < count:
+        rawpw = pw_generator()
+        ldappw = ldappassword(rawpw)
+        id = '{}{}'.format(random_id, i)
+        dn = "uid=lanbruker" + id + ",ou=LAN,ou=Colargol,dc=tihlde,dc=org"
+        attrs = {}
+        attrs['objectclass'] = ['top', 'person', 'organizationalPerson', 'inetOrgPerson', 'posixAccount', 'shadowAccount']
+        attrs['cn'] = 'Lan Bruker {}'.format(id)
+        attrs['givenName'] = 'Lan'
+        attrs['sn'] = 'Bruker'
+        attrs['uidNumber'] = str(uid_number)
+        attrs['gidNumber'] = '6057'
+        attrs['homeDirectory'] = '/home/lan/lanbruker{}'.format(id)
+        attrs['shadowLastChange'] = str(shadow)
+        attrs['shadowMax'] = '4'
+        attrs['shadowWarning'] = '1'
+        attrs['shadowExpire'] = str(expire)
+        attrs['userPassword'] = ldappw
+        ldif = modlist.addModlist(attrs)
+        try:
+            lcon.add_s(dn, ldif)
+
+            print('Brukernavn: lanbruker{}\nPassord: {}\n\n'.format(id, rawpw))
+            i += 1
+            uid_number += 1
+
+        except ldap.LDAPError, e:
+            print e
+            break
+
+    lcon.unbind()
