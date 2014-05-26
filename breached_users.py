@@ -30,16 +30,23 @@ for mails in ldapaddress:
     for mail in mails:
         emails.append(mail)
 
-#testemails = ['test@test.com']
+#testemails = ['test@test.com', 'kvhansen@online.no', 'sengir@start.no']
+breached_users = {}
 
 # TODO: Gjøre noe mer fornuftig enn å skrive de ut til skjerm
 for email in emails:
+    lst = [] 
     try:
         response = urllib2.urlopen(api_url+email).read()
         json_data = json.loads(response)
-        print email + " has been compromised in the following places: "
+        #print email + " has been compromised in the following places: "
         for i in json_data:
-            print i.get('Name')
+            lst.append(i.get('Name'))
+            #print i.get('Name')
+        
+        breached_users.update({email : lst})
 
     except urllib2.HTTPError:
         pass
+
+print breached_users
