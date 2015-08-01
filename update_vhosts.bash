@@ -115,11 +115,11 @@ diff=$(diff <(find ${apacheFolder}${vhostAFolder} -type f -exec md5sum {} \; | c
 
 # Hvis de er endret, så bytter vi de gamle ut med de nye.
 if [ -n "$diff" ]; then
-  echo "Fant endringer! Bytter ut gammel apache-conf med ny."
+  logger "update_vhosts.bash: Fant endringer! Bytter ut gammel apache-conf med ny."
   rm -rf ${apacheFolder}${vhostAFolder}
   mv $tmpDir ${apacheFolder}${vhostAFolder}
 else
-  echo "Fant ingen endringer. Avslutter (og rydder)."
+   logger "update_vhosts.bash: Fant ingen endringer. Avslutter (og rydder)."
 fi
 
 #######################
