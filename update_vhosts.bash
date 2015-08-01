@@ -1,11 +1,7 @@
-#!/bin/bash
+#!/usr/bin/env bash
 #
 # Script som oppretter virtualhosts ala "bruker.tihlde.org" for samtlige
-# brukere, både i apache og bind.
-#
-# Hvis scriptet kalles med opsjonen '--apache' vil kun
-# vhostene for apache2 oppdateres. Dette brukes hovedsaklig av scriptet
-# open_user.sh.
+# brukere..
 #
 # Generer filene fra scratch for ordens skyld
 #
@@ -16,133 +12,116 @@
 # - Oppdatert til apache2 og mod_jk av Håvard Barkhall (2006)
 # - Oppdatert bugs/regex Roy Sindre Norangshol (2007)
 # - Oversatt til bash + støtte for LDAP + støtte for WebDAV av joachimn (2009)
+# - Fullstendig rewrite. Henter nå data fra MySQL. - Dennis Eriksen (dennisse), 2015-08-01
 #
+# please clean me
 
-if (( $UID != 0 )); then
-	echo "*!* Fatal: Must be run by root!"
-	exit 1
-fi
+# Starter med litt standard gull. «unofficial bash strict mode»
+# http://redsymbol.net/articles/unofficial-bash-strict-mode/
+set -euo pipefail
+IFS=$'\n\t'
 
-# location of ldap_valid script
-LDAP_VALID="/home/staff/drift/bin/ldap_utils/ldap_valid.bash"
 
-# final destination
-APACHE_BASE="/etc/apache2/sites-available"
-BIND_BASE="/etc/bind/vhosts.d"
+# Så kan vi sette noen variabler
+# camelCase ftw?
 
-# argument flags
-GO_BIND=0
-if [ "$1" == "--apache" ]; then
-	GO_BIND=-1
-fi
-VERBOSE=0
+mysqlHost='localhost'
+mysqlUser='apache'
+mysqlPass=$(cat /home/staff/drift/passord/db-apache)
+mysqlDB='apache'
 
-# make a temp direcory which we can put files in
-TEMP=/tmp/update_vhosts_$$
-mkdir $TEMP
-if (( $? != 0 )); then
-	echo "*!* Fatal: Unable to create $TEMP"
-	exit 1
-fi
+mysqlQuery="SELECT brukere.id, brukere.brukernavn AS 'bruker', grupper.navn AS 'gruppe', brukere.webdav AS 'ifwebdav' FROM brukere INNER JOIN grupper ON (brukere.gruppe = grupper.id) WHERE brukere.expired = 'false' AND brukere.deaktivert = 'false' ORDER BY 'brukere.gruppe' DESC;"
 
-PROCESSED="$TEMP/processed"
-touch $PROCESSED
+apacheFolder='/etc/apache2/'
+vhostAFolder='sites-available/brukere.tihlde.org'
+vhostEFolder='sites-enabled/brukere.tihlde.org'
 
-# loop through /home/*
-for GROUP in staff xdrift students guests org ansatt hs xhs forever
-do
-	# remember all the directories in /home/*/*
-	ls /home/$GROUP > $TEMP/temp
+# En tempdir er fint å ha.
+tmpDir=$(mktemp -d /tmp/update_vhosts.XXXXXXXXX) || { echo "Failed to create temp dir"; exit 1; }
 
-	# temp storage
-	BIND_FILE="$TEMP/tihlde.org-$GROUP"
-	APACHE_FILE="$TEMP/brukere.tihlde.org-$GROUP"
+# Det er viktig å huske å fjerne temp-ting.
+function cleanUp {
+  if [ -d $tmpDir ]; then rm -rf $tmpDir; fi
+}
 
-	# loop through /home/*/*
-	while read USER
-	do
-		# true if user exists and has *not* expired
-		if (( $($LDAP_VALID $USER) == 0 )); then
 
-			# bind will crash with duplicates
-			if grep -q "_${USER}_" $PROCESSED; then
-				echo "** Warning: '$USER' has been processed more than once. Duplicate user?"
-				continue
-			else
-				echo "_${USER}_" >> $PROCESSED
-			fi
-			# public_html has to exist
-			if [ -d "/home/$GROUP/$USER/public_html" ]; then
+########################
 
-## dump these mofo's in the temp file
-echo -e "<VirtualHost 158.38.48.10:80>
-	ServerName $USER.tihlde.org
-	ServerAdmin $USER@tihlde.org
-	DocumentRoot /home/$GROUP/$USER/public_html
-	ScriptAlias /cgi-bin/ /home/$GROUP/$USER/public_html/cgi-bin/
-	ErrorLog /var/log/apache2/error-vhosts-$GROUP.log
-	TransferLog /var/log/apache2/transfer-vhosts-$GROUP.log
-	<Directory /home/$GROUP/$USER/public_html>
-		AllowOverride All
-	</Directory>
+
+#mysql -u$mysqlUser -p$mysqlPass $mysqlDB -e "$mysqlQuery" 
+mysql -u$mysqlUser -p$mysqlPass $mysqlDB -e "$mysqlQuery" | while read id bruker gruppe ifwebdav; do
+
+  # På første eller siste tur settes variablene til variabelnavnet.. Den droppper vi
+  if [[ $bruker == 'bruker' ]] && [[ $gruppe == 'gruppe' ]]; then continue; fi
+
+  if [ $ifwebdav == 'true' ]; then
+    webdav="        Alias /webdav /home/${gruppe}/${bruker}/webdav/public/
+        <Directory /home/${gruppe}/${bruker}/webdav/public/>
+                Options -FollowSymLinks
+                AllowOverride None
+        </Directory>"
+  else webdav=''
+  fi
+
+# må fikses.
+  serveralias=''
+#  mysql -u$mysqlUser -p$mysqlPass $mysqlDB -e "SELECT alias.alias FROM alias WHERE alias.bruker = $id" | while read alias; do
+#    if [[ "$alias" != "alias" ]]; then
+#      serveralias=${serveralias}"        ServerAlias ${alias}\n"
+#    fi
+#  done
+
+
+  cat > ${tmpDir}/${bruker}.tihlde.org.conf <<-EOM
+<VirtualHost *:80>
+        ServerName ${bruker}.tihlde.org
+        ServerAdmin ${bruker}@tihlde.org
+
+        $serveralias
+
+        DocumentRoot /home/${gruppe}/${bruker}/public_html/
+        ScriptAlias /cgi-bin/ /home/${gruppe}/${bruker}/public_html/cgi-bin/
+#       ErrorLog /var/log/apache2/error-vhosts-${gruppe}.log
+#       TransferLog /var/log/apache2/transfer-vhosts-${gruppe}.log
+
+        ${webdav}
 </VirtualHost>
-<VirtualHost 158.38.48.10:443>
-	ServerName $USER.tihlde.org
-	ServerAdmin $USER@tihlde.org
-	DocumentRoot /home/$GROUP/$USER/public_html
-	ScriptAlias /cgi-bin/ /home/$GROUP/$USER/public_html/cgi-bin/
-	ErrorLog /var/log/apache2/error-vhosts-$GROUP.log
-	TransferLog /var/log/apache2/transfer-vhosts-$GROUP.log
 
-	SSLEngine on
-	SSLCertificateFile /etc/ssl/certs/tihlde.org.pem
+<VirtualHost *:443>
+        ServerName ${bruker}.tihlde.org
+        ServerAdmin ${bruker}@tihlde.org
 
-	<Directory /home/$GROUP/$USER/public_html>
-		AllowOverride All
-	</Directory>
+        $serveralias
 
-	<Directory /home/$GROUP/$USER/public_html/webdav>
-		DAV On
-		AuthType Digest
-		AuthName \"WebDAV\"
-		AuthUserFile  /home/$GROUP/$USER/.webdav-passwd
-		Require valid-user
-	</Directory>
-</VirtualHost>\n" >> $APACHE_FILE
-# we were ----------------------| here ;D
-			fi
+        DocumentRoot /home/${gruppe}/${bruker}/public_html/
+        ScriptAlias /cgi-bin/ /home/${gruppe}/${bruker}/public_html/cgi-bin/
+#   ErrorLog /var/log/apache2/error-vhosts-${gruppe}.log
+#   TransferLog /var/log/apache2/transfer-vhosts-${gruppe}.log
 
-			# do bind or...?
-			if (( $GO_BIND != 0 )); then
-				continue
-			fi
-			# do bind then
-			echo -e "$USER\tIN\tCNAME\tcolargol" >> $BIND_FILE
+        SSLEngine on
+        SSLCertificateKeyFile /etc/ssl/private/STAR_tihlde_org.key
+        SSLCertificateFile /etc/ssl/certs/STAR_tihlde_org.crt
+        SSLCertificateChainFile /etc/ssl/certs/STAR_tihlde_org.ca-bundle
 
-		fi
+	${webdav}
+</VirtualHost>
 
-	done < "$TEMP/temp"
+EOM
 done
 
 
-# custom vhosts
+# Her sjekker vi om innholdet i noen av filene er endret siden sist.
+diff=$(diff <(find ${apacheFolder}${vhostAFolder} -type f -exec md5sum {} \; | cut -f 1 -d ' ' | sort) <(find $tmpDir -type f -exec md5sum {} \; | cut -f 1 -d ' ' | sort))
 
-#temp
-cat "/home/staff/drift/data/vhost_custom/ixan.no" >> $TEMP/brukere.tihlde.org-xdrift
-
-
-# copy files to /etc
-for GROUP in students guests org ansatt hs staff xhs xdrift forever
-do
-	if [ -f $TEMP/brukere.tihlde.org-$GROUP ]; then
-		cp $TEMP/brukere.tihlde.org* $APACHE_BASE
-	fi
-	if (( $GO_BIND == 0 )) && [ -f $TEMP/tihlde.org-$GROUP ]; then
-		cp $TEMP/tihlde.org-$GROUP $BIND_BASE
-	fi
-done
-
-if [ -d $TEMP ]; then
-	rm -rf $TEMP
+# Hvis de er endret, så bytter vi de gamle ut med de nye.
+if [ -n "$diff" ]; then
+  echo "Fant endringer! Bytter ut gammel apache-conf med ny."
+  rm -rf ${apacheFolder}${vhostAFolder}
+  mv $tmpDir ${apacheFolder}${vhostAFolder}
+else
+  echo "Fant ingen endringer. Avslutter (og rydder)."
 fi
 
+#######################
+
+trap cleanUp EXIT
