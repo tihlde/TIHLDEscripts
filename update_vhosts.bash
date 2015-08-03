@@ -79,10 +79,14 @@ mysql -u$mysqlUser -p$mysqlPass $mysqlDB -e "$mysqlQuery" | while read id bruker
 
         $serveralias
 
+        AssignUserID ${bruker} ${gruppe}
+        MaxClientsVHost 10
+
         DocumentRoot /home/${gruppe}/${bruker}/public_html/
         ScriptAlias /cgi-bin/ /home/${gruppe}/${bruker}/public_html/cgi-bin/
-#       ErrorLog /var/log/apache2/error-vhosts-${gruppe}.log
-#       TransferLog /var/log/apache2/transfer-vhosts-${gruppe}.log
+
+        ErrorLog /var/log/apache2/error-brukere.tihlde.org.log
+        CustomLog /var/log/apache2/access-brukere.tihlde.org.log combined
 
         ${webdav}
 </VirtualHost>
@@ -93,15 +97,16 @@ mysql -u$mysqlUser -p$mysqlPass $mysqlDB -e "$mysqlQuery" | while read id bruker
 
         $serveralias
 
+        AssignUserID ${bruker} ${gruppe}
+        MaxClientsVHost 10
+
         DocumentRoot /home/${gruppe}/${bruker}/public_html/
         ScriptAlias /cgi-bin/ /home/${gruppe}/${bruker}/public_html/cgi-bin/
-#   ErrorLog /var/log/apache2/error-vhosts-${gruppe}.log
-#   TransferLog /var/log/apache2/transfer-vhosts-${gruppe}.log
+
+        ErrorLog /var/log/apache2/error-brukere.tihlde.org.log
+        CustomLog /var/log/apache2/access-brukere.tihlde.org.log combined
 
         SSLEngine on
-        SSLCertificateKeyFile /etc/ssl/private/STAR_tihlde_org.key
-        SSLCertificateFile /etc/ssl/certs/STAR_tihlde_org.crt
-        SSLCertificateChainFile /etc/ssl/certs/STAR_tihlde_org.ca-bundle
 
 	${webdav}
 </VirtualHost>
@@ -109,16 +114,24 @@ mysql -u$mysqlUser -p$mysqlPass $mysqlDB -e "$mysqlQuery" | while read id bruker
 EOM
 done
 
+echo "Made all files"
 
-# Her sjekker vi om innholdet i noen av filene er endret siden sist.
-diff=$(diff <(find ${apacheFolder}${vhostAFolder} -type f -exec md5sum {} \; | cut -f 1 -d ' ' | sort) <(find $tmpDir -type f -exec md5sum {} \; | cut -f 1 -d ' ' | sort))
+
+# Hvis scriptet gir veldig få choster er noe galt
+if [ $(ls -la $tmpDir | wc -l) -lt 10 ]; then
+  echo "Scriptet ga færre enn ti vhosts.. Noe er nok galt." >&2
+  exit 1
+fi
+
 
 # Hvis de er endret, så bytter vi de gamle ut med de nye.
-if [ -n "$diff" ]; then
+if [ -n "$(diff <(find ${apacheFolder}${vhostAFolder} -type f -exec md5sum {} \; | cut -f 1 -d ' ' | sort) <(find $tmpDir -type f -exec md5sum {} \; | cut -f 1 -d ' ' | sort))" ]; then
+  echo "Fant endringer! Bytter ut gammel apache-conf med ny."
   logger "update_vhosts.bash: Fant endringer! Bytter ut gammel apache-conf med ny."
   rm -rf ${apacheFolder}${vhostAFolder}
   mv $tmpDir ${apacheFolder}${vhostAFolder}
 else
+   echo "Fant ingen endringer. Avslutter (og rydder)."
    logger "update_vhosts.bash: Fant ingen endringer. Avslutter (og rydder)."
 fi
 
