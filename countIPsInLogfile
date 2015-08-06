@@ -1,0 +1,11 @@
+#! /usr/bin/python
+# Reads number of unique IPs from stdin. Useful for access logs from apache or nginx 
+import sys
+
+ipAddresses = {}
+
+for line in sys.stdin:
+        ip = line.split(" ")[0]
+        if 6 < len(ip) <=15:
+            ipAddresses[ip] = ipAddresses.get(ip, 0) + 1
+print len(ipAddresses)
