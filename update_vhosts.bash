@@ -88,6 +88,10 @@ mysql -u$mysqlUser -p$mysqlPass $mysqlDB -e "$mysqlQuery" | while read id bruker
         ErrorLog /var/log/apache2/error-brukere.tihlde.org.log
         CustomLog /var/log/apache2/access-brukere.tihlde.org.log combined
 
+        <Directory />
+                Options Indexes
+        </Directory>
+
         ${webdav}
 </VirtualHost>
 
@@ -107,6 +111,10 @@ mysql -u$mysqlUser -p$mysqlPass $mysqlDB -e "$mysqlQuery" | while read id bruker
         CustomLog /var/log/apache2/access-brukere.tihlde.org.log combined
 
         SSLEngine on
+
+        <Directory />
+                Options Indexes
+        </Directory>
 
 	${webdav}
 </VirtualHost>
