@@ -73,6 +73,10 @@ mysql -u$mysqlUser -p$mysqlPass $mysqlDB -e "$mysqlQuery" | while read id bruker
 
 
   cat > ${tmpDir}/${bruker}.tihlde.org.conf <<-EOM
+# Denne filen genereres automatisk. Alle endringer vil overskrives om maks 15 minutter.
+# 
+# Scriptet som genererer filen er /home/staff/drift/TIHLDEscripts/update_vhosts.bash, og det kjøres av cron -> /etc/cron.d/update_vhosts
+
 <VirtualHost *:80>
         ServerName ${bruker}.tihlde.org
         ServerAdmin ${bruker}@tihlde.org
