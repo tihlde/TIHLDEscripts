@@ -93,7 +93,8 @@ mysql -u$mysqlUser -p$mysqlPass $mysqlDB -e "$mysqlQuery" | while read id bruker
         CustomLog /var/log/apache2/access-brukere.tihlde.org.log combined
 
         <Directory />
-                Options Indexes
+                Options Indexes SymLinksIfOwnerMatch
+                AllowOverride All
         </Directory>
 
         ${webdav}
@@ -117,7 +118,8 @@ mysql -u$mysqlUser -p$mysqlPass $mysqlDB -e "$mysqlQuery" | while read id bruker
         SSLEngine on
 
         <Directory />
-                Options Indexes
+                Options Indexes SymLinksIfOwnerMatch
+                AllowOverride All
         </Directory>
 
 	${webdav}
