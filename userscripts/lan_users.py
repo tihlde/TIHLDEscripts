@@ -9,8 +9,8 @@ __author__ = 'Harald Floor Wilhelmsen'
 
 args = sys.argv
 
-useramount = args[0].strip()
-useridstart = args[1].strip()
+useramount = args[1].strip()
+useridstart = args[2].strip()
 userprename = 'lan-'
 
 if not useramount.isdigit() or not useridstart.isdigit():
@@ -21,7 +21,7 @@ useridstart = int(useridstart)
 
 print('Creating ' + str(useramount) + ' users with first user id ' + str(useridstart))
 
-executorHome = subprocess.Popen('echo $HOME').stdout.read(300)
+executorHome = subprocess.Popen('echo $HOME', shell=True).stdout.read(300)
 outputfile = executorHome + '/lan_users'
 
 for i in range(0, useramount, 1):
