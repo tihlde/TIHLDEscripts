@@ -7,7 +7,7 @@ __author__ = 'Harald Floor Wilhelmsen'
 # python lan_users.py useramount
 # ipa user-add lan-299 --homedir=/home/lan --random --gidnumber=1002 --shell=/bin/false --first=lan --last=bruker
 
-args = str(sys.argv).split(' ')
+args = sys.argv
 
 useramount = args[0].strip()
 useridstart = args[1].strip()
