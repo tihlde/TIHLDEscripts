@@ -1,6 +1,8 @@
 # coding: utf-8
+import os
 import subprocess
 import sys
+from os.path import expanduser
 
 __author__ = 'Harald Floor Wilhelmsen'
 
@@ -23,11 +25,13 @@ print('Creating ' + str(useramount) + ' users with first user id ' + str(userids
 
 process = subprocess.Popen(['echo', '$HOME'], stdout=subprocess.PIPE, shell=True)
 (executorHome, err) = process.communicate()
-outputfile = str(executorHome) + '/lan_users'
+outputfile = str(expanduser("~")) + '/lan_users'
+
+os.system('touch ' + outputfile)
 
 for i in range(0, useramount, 1):
     newlogin = userprename + str(i + useridstart)
-    subprocess.Popen(['ipa user-add ', newlogin, '--homedir=/home/lan', '--random', '--gidnumber=1002', '--shell=/bin/false', '--first=lan', '--last=bruker ',
-                      '| egrep \(User login\|Random password\) > ' + outputfile])
+    cmd = 'ipa user-add %s --homedir=/home/lan --random --gidnumber=1002 --shell=/bin/false --first=lan --last=bruker | grep "\(login\|password\)" >> %s ' %  (newlogin, outputfile)
+    os.system(cmd)
 
 print('Done. Results added to file ' + outputfile)
