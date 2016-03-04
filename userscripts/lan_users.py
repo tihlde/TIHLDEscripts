@@ -21,12 +21,13 @@ useridstart = int(useridstart)
 
 print('Creating ' + str(useramount) + ' users with first user id ' + str(useridstart))
 
-executorHome = subprocess.Popen('echo $HOME', shell=True).stdout.read(300)
-outputfile = executorHome + '/lan_users'
+process = subprocess.Popen(['echo', '$HOME'], stdout=subprocess.PIPE, shell=True)
+(executorHome, err) = process.communicate()
+outputfile = str(executorHome) + '/lan_users'
 
 for i in range(0, useramount, 1):
     newlogin = userprename + str(i + useridstart)
-    subprocess.Popen(['ipa user-add ', newlogin, ' --homedir=/home/lan --random --gidnumber=1002 --shell=/bin/false --first=lan --last=bruker '
-                                         '| egrep \(User login\|Random password\) > ', outputfile])
+    subprocess.Popen(['ipa user-add ', newlogin, '--homedir=/home/lan', '--random', '--gidnumber=1002', '--shell=/bin/false', '--first=lan', '--last=bruker ',
+                      '| egrep \(User login\|Random password\) > ' + outputfile])
 
 print('Done. Results added to file ' + outputfile)
