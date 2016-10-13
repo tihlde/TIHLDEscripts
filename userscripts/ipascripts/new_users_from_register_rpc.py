@@ -42,9 +42,9 @@ def send_email(recipient, body):
     try:
         smtpObj = smtplib.SMTP('localhost')
         smtpObj.sendmail(sender, recipient, text)
-        print 'Successfully sent email to "' + recipient + '"'
+        print('Successfully sent email to "' + recipient + '"')
     except smtplib.SMTPException:
-        print 'Error: unable to send email to "' + recipient + '"'
+        print('Error: unable to send email to "' + recipient + '"')
 
 
 def add_single_user(api, username, firstname, lastname, course, email, password):
@@ -99,7 +99,7 @@ def main():
         gecos = str(firstname) + ' ' + str(lastname) + ',' + str(email) + ',' + str(course)
         generatedpw = generate_password()
 
-        print 'Adding user "' + username + '" with full name "' + str(firstname) + ' ' + str(lastname) + '"'
+        print('Adding user "' + username + '" with full name "' + str(firstname) + ' ' + str(lastname) + '"')
         # add user
         add_single_user(api, username, firstname, lastname, course, email, generatedpw)
 
