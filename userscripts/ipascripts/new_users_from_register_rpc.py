@@ -78,7 +78,7 @@ def main():
     apache_cursor = apache_db.cursor()
 
     api = ipa("ipa1.tihlde.org", sslverify=True)
-    api.login('admin', 'd5rqv8HCnwxYuB')
+    api.login('admin', '|passwordhere|')
 
     date_from = '2016-08-01'
     date_to = '2016-10-01'
