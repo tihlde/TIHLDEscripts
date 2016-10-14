@@ -48,7 +48,7 @@ def send_email(recipient, body):
 
 
 def add_single_user(api, username, firstname, lastname, course, email, password):
-    gecos = str(firstname) + ' ' + str(lastname) + ',' + str(email) + ',' + str(course)
+    gecos = str(firstname) + ' ' + str(lastname) + ' ,' + str(email) + ' ,' + str(course)
 
     info = \
         {
@@ -78,7 +78,8 @@ def main():
     apache_cursor = apache_db.cursor()
 
     api = ipa("ipa1.tihlde.org", sslverify=True)
-    api.login('admin', '|passwordhere|')
+    # username, password(second line of ipa-admin password-file)
+    api.login('admin', open("/home/staff/drift/passord/ipa-admin").readlines()[1].strip())
 
     date_from = '2016-08-01'
     date_to = '2016-10-01'
@@ -96,7 +97,6 @@ def main():
         course = str(row[2]).strip()
         username = str(row[3]).strip().lower()
         email = str(row[4]).strip().lower()
-        gecos = str(firstname) + ' ' + str(lastname) + ',' + str(email) + ',' + str(course)
         generatedpw = generate_password()
 
         print('Adding user "' + username + '" with full name "' + str(firstname) + ' ' + str(lastname) + '"')
