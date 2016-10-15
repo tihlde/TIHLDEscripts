@@ -1,0 +1,93 @@
+connect mreg db
+connect apache db
+
+connect to ldap
+get first available uid in ldap
+
+get all new users as newusers
+for user in newusers
+    u+=1
+    try:
+        get first and last name, linje, histuser, shadow, epost
+        get salted ldappw
+        dn = "uid=" + histuser + ",ou=Brukere,ou=Colargol,dc=tihlde,dc=org"
+        attrs = {}
+        attrs['objectclass'] = ['top', 'person', 'organizationalPerson', 'inetOrgPerson', 'posixAccount', 'shadowAccount']
+        attrs['cn'] = first_name +" " + last_name
+        attrs['givenName'] = first_name
+        attrs['sn'] = last_name
+        attrs['mail'] = histuser + "@tihlde.org", epost
+        attrs['uidNumber'] = str(uidNumber)
+        attrs['gidNumber'] = '1007'
+        attrs['homeDirectory'] = '/home/students/' + histuser
+        attrs['loginshell'] = '/bin/bash'
+        # gecos doesn't support æøå so we sub them to other things
+        first_name = re.sub('ø', 'oe', first_name)
+        first_name = re.sub('å', 'aa', first_name)
+        first_name = re.sub('Æ', 'AE', first_name)
+        first_name = re.sub('Ø', 'OE', first_name)
+        first_name = re.sub('Å', 'AA', first_name)
+        last_name = re.sub('æ','ae', last_name)
+        last_name = re.sub('ø', 'oe', last_name)
+        last_name = re.sub('å', 'aa', last_name)
+        last_name = re.sub('Æ', 'AE', last_name)
+        last_name = re.sub('Ø', 'OE', last_name)
+        last_name = re.sub('Å', 'AA', last_name)
+        attrs['gecos'] = first_name + " " + last_name + " | " + linje
+        attrs['shadowLastChange'] = str(shadow)
+        attrs['shadowMax'] = '365'
+        attrs['shadowWarning'] = '7'
+        attrs['shadowExpire'] =  str(expire)
+        attrs['userPassword'] = ldappw
+        # this actually adds the user with all the above information and then
+        # adds +1 to uidNumber for the next entry
+        #        pprint.pprint(modlist.addModlist(attrs))
+        ldif = modlist.addModlist(attrs)
+        lcon.add_s(dn,ldif)
+        uidNumber += 1
+        # adds the user to apache
+        apachecursor.execute("INSERT INTO `apache`.`brukere` (`id`, `brukernavn`, `gruppe`, `expired`, `deaktivert`, `webdav`, `kommentar`) VALUES (NULL, '"+ histuser +"', '7', 'false', 'false', 'false', '');")
+        apache.commit()
+        # logs user in to create folders (to avoid mailspam)
+        call(["sudo", "su", histuser, "-c", "exit"])
+        # adds users mail to textfile
+        f.write(histuser + "@tihlde.org\n")
+        # mail being sent with the username and password
+        reciever = histuser + "@student.hist.no"
+        msg = MIMEMultipart()
+        msg['From'] = sender
+        msg['To'] = reciever
+        msg['Subject'] = "Brukerkonto på Colargol"
+        body = "Brukeren din på TIHLDE-serveren Colargol har blitt opprettet. Dette fordi du signerte på brukerreglementet ved innmeldingsfesten. Reglementet er også beskrevet her: http://tihlde.org/lover/brukerreglement.htm \n\nHer har du nå fått tildelt en shellkonto med 10GB lagringsplass, TIHLDE-epost, samt webhotell for adressen din http://" + histuser + ".tihlde.org og masse annet snacks. For å se alt vi tilbyr kan du sjekke https://tihlde.org/tjenester/. \n\nDu kan logge inn med SSH (Last ned putty om du bruker windows) på hostnavn: tihlde.org\nBrukernavn: "+histuser+" \nPassord: "+rawpw +" \n\nLogg inn for å bytt passord med kommando 'passwd'. Dette passord blir syncet med andre tjenster vi tilbyr i TIHLDE. Teknisk hjelp finnes på http://tihlde.org . Andre tekniske henvendelser kan sendes på mail til support@tihlde.org\n\nMvh\ndrift@tihlde.org"
+        msg.attach(MIMEText(body, 'plain'))
+        text = msg.as_string()
+        try:
+            smtpObj = smtplib.SMTP('localhost')
+            smtpObj.sendmail(sender, reciever, text)
+            print "Successfully sent email"
+        except smtplib.SMTPException:
+            print "Error: unable to send email"
+        msg2 = MIMEMultipart()
+        msg2['From'] = sender
+        msg2['To'] = epost
+        msg2['Subject'] = "Velkommen til Tihlde"
+        body2 = "Hei og velkommen til Tihlde! \n\nDu har nå fått tildelt en shellkonto med 10GB lagringsplass, TIHLDE-epost, samt webhotell for adressen din http://" + histuser + ".tihlde.org og masse annet snacks.\n\nOm du skulle få noen problemer med de digitale tjenestene som Tihlde tilbyr til sine medlemmer så er det bare å ta kontakt på support@tihlde.org\n\nMvh\ndrift@tihlde.org"
+        msg2.attach(MIMEText(body2, 'plain'))
+        text2 = msg2.as_string()
+        reciever2 = histuser + "@tihlde.org"
+        try:
+            smtpObj = smtplib.SMTP('localhost')
+            smtpObj.sendmail(sender, reciever2, text2)
+            print "Successfully sent email"
+        except smtplib.SMTPException:
+            print "Error: unable to send email"
+    except ldap.LDAPError, e:
+        print e
+f.close()
+
+call(["sudo", "python", "/var/lib/mailman/bin/add_members", "-r", "maillisteopptak.txt", "-w", "n", "colusers"])
+print "Lagt inn ", u, " brukere"
+print "Success"
+lcon.unbind_s()
+apache.close()
+db.close()
