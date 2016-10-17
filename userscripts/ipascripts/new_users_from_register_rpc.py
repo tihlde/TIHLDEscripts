@@ -1,4 +1,5 @@
 # -*- coding: utf-8 -*-
+import sys
 import random
 import string
 import MySQLdb
@@ -7,6 +8,10 @@ from email.MIMEMultipart import MIMEMultipart
 from email.MIMEText import MIMEText
 
 from ipahttp import ipa
+
+external_email_body = "Brukeren din på TIHLDE-serveren Colargol har blitt opprettet. Dette fordi du signerte på brukerreglementet ved innmeldingsfesten. Reglementet er også beskrevet her: http://tihlde.org/lover/brukerreglement.htm \n\nHer har du nå fått tildelt en shellkonto med 10GB lagringsplass, TIHLDE-epost, samt webhotell for adressen din http://%s.tihlde.org og masse annet snacks. For å se alt vi tilbyr kan du sjekke https://tihlde.org/tjenester/. \n\nDu kan logge inn med SSH (Last ned putty om du bruker windows) på hostnavn: tihlde.org\nBrukernavn: %s\nPassord: %s\n\nDu vil bli bedt om å skifte passord ved første innlogging, det kan endres senere med kommando 'passwd'. Dette passordet blir syncet med andre tjenster vi tilbyr i TIHLDE. Teknisk hjelp finnes på http://tihlde.org/ . Andre tekniske henvendelser kan sendes på mail til support@tihlde.org\n\nMvh\ndrift@tihlde.org"
+
+tihlde_email_body = "Hei og velkommen til Tihlde! \n\nDu har nå fått tildelt en shellkonto med 10GB lagringsplass, TIHLDE-epost, samt webhotell for adressen din http://%s.tihlde.org og masse annet snacks.\n\nOm du skulle få noen problemer med de digitale tjenestene som Tihlde tilbyr til sine medlemmer så er det bare å ta kontakt på support@tihlde.org\n\nMvh\ndrift@tihlde.org"
 
 def generate_password():
     pwlen = 12
@@ -37,7 +42,7 @@ def send_email(recipient, body):
     msg['From'] = sender
     msg['To'] = recipient
     msg['Subject'] = "Brukerkonto på Colargol"
-    msg.attach(MIMEText(body, 'plain'))
+    msg.attach(MIMEText(body, 'plain', 'utf-8'))
     text = msg.as_string()
     try:
         smtpObj = smtplib.SMTP('localhost')
@@ -59,7 +64,9 @@ def add_single_user(api, username, firstname, lastname, course, email, password)
             "gidnumber": "1007",
             "homedirrectory": "/home/students/" + username
         }
-    print(api.stageuser_add(username, info))
+    response = api.stageuser_add(username, info)
+    if response['error'] :
+        print('An error occured')
 
 
 
@@ -82,7 +89,7 @@ def main():
     api.login('admin', open("/home/staff/drift/passord/ipa-admin").readlines()[1].strip())
 
     date_from = '2016-08-01'
-    date_to = '2016-10-01'
+    date_to = '2016-10-16'
 
     mreg_cursor.execute(
         "SELECT fornavn, etternavn, linje, histbruker, epost FROM members WHERE timestamp BETWEEN '" + date_from + "' AND '" + date_to + "' AND aktivert = '1' AND eula = '1'")
@@ -100,14 +107,10 @@ def main():
         generatedpw = generate_password()
 
         print('Adding user "' + username + '" with full name "' + str(firstname) + ' ' + str(lastname) + '"')
-        # add user
-        add_single_user(api, username, firstname, lastname, course, email, generatedpw)
+        add_single_user(api, username, firstname, lastname, course, email, generatedpw) # add user
 
-        body = "Brukeren din på TIHLDE-serveren Colargol har blitt opprettet. Dette fordi du signerte på brukerreglementet ved innmeldingsfesten. Reglementet er også beskrevet her: http://tihlde.org/lover/brukerreglement.htm \n\nHer har du nå fått tildelt en shellkonto med 10GB lagringsplass, TIHLDE-epost, samt webhotell for adressen din http://" + username + ".tihlde.org og masse annet snacks. For å se alt vi tilbyr kan du sjekke https://tihlde.org/tjenester/. \n\nDu kan logge inn med SSH (Last ned putty om du bruker windows) på hostnavn: tihlde.org\nBrukernavn: " + username + " \nPassord: " + generatedpw + " \n\nDu vil bli bedt om å skifte passord ved første innlogging, det kan endres senere med kommando 'passwd'. Dette passordet blir syncet med andre tjenster vi tilbyr i TIHLDE. Teknisk hjelp finnes på http://tihlde.org/ . Andre tekniske henvendelser kan sendes på mail til support@tihlde.org\n\nMvh\ndrift@tihlde.org"
-        send_email(email, body)
-
-        body = "Hei og velkommen til Tihlde! \n\nDu har nå fått tildelt en shellkonto med 10GB lagringsplass, TIHLDE-epost, samt webhotell for adressen din http://" + username + ".tihlde.org og masse annet snacks.\n\nOm du skulle få noen problemer med de digitale tjenestene som Tihlde tilbyr til sine medlemmer så er det bare å ta kontakt på support@tihlde.org\n\nMvh\ndrift@tihlde.org"
-        send_email(username + '@tihlde.org', body)
+        send_email(email, external_email_body % (username, username, generatedpw)) # send email to external email
+        send_email(username + '@tihlde.org', external_email_body % (username)) # send email to tihlde-email
 
         # apachecursor.execute("INSERT INTO `apache`.`brukere` (`id`, `brukernavn`, `gruppe`, `expired`, `deaktivert`, `webdav`, `kommentar`) VALUES (NULL, '"+ username +"', '7', 'false', 'false', 'false', '');")
 
