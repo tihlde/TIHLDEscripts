@@ -50,7 +50,7 @@ def log(entry):
 
 
 def send_email(recipient, body):
-    # while testing
+    # TODO remove when user_add is used
     recipient = "harald_fw@live.no"
 
     sender = 'drift@tihlde.org'
@@ -80,9 +80,10 @@ def add_single_user(api, username, firstname, lastname, course, email, password)
             "gidnumber": "1007",
             "homedirectory": "/home/students/" + username
         }
+    # TODO change to user_add when script is done
     response = api.stageuser_add(username, info)
     if response['error']:
-        log('An error occured when calling IPA')
+        log('An error occured when calling IPA, continuing with next user')
         return
     return response['result']['result']['uidnumber']
 
@@ -91,7 +92,7 @@ def make_homedir(username, uid):
     new_home_dir = '/home/students/%s' % username
     # if dir exists, do nothing
     if os.path.exists(new_home_dir):
-        log('Homedir for user %s not created, "%s" already exists' % (username, new_home_dir))
+        log('Homedir for user %s not created, "%s" already exists, continuing with next user' % (username, new_home_dir))
         return
 
     # else, copy /etc/skel to /home/students/<username>
@@ -118,7 +119,7 @@ def add_all_users():
 
     api = ipa("ipa1.tihlde.org", sslverify=True)
     # username, password(second line of ipa-admin password-file)
-    api.login('admin', open("/home/staff/drift/passord/ipa-admin").readlines()[1].strip())
+    api.login('admin', open("/home/staff/drift/passord/ipa-admin").readlines()[1].replace('\n', '').strip())
 
     date_from = '2016-08-01'
     date_to = '2016-10-16'
@@ -162,6 +163,7 @@ def add_all_users():
         apache_cursor.execute(
             "INSERT INTO `apache`.`brukere` (`id`, `brukernavn`, `gruppe`, `expired`, `deaktivert`, `webdav`, `kommentar`) "
             "VALUES (NULL, %s, %s, 'false', 'false', 'false', '');" % (username, str(groupid)))
+        # TODO uncomment when run with user_add and not stageuser_add
         # make_homedir(username, uid)
 
     # close mailliste_file
@@ -169,15 +171,16 @@ def add_all_users():
     # close databases
     mreg_db.close()
     apache_db.close()
+    # TODO uncomment when run with user_add and not stageuser_add
     # call(["python", "/var/lib/mailman/bin/add_members", "-r", mailliste_path, "-w", "n", "colusers"])
     # call(["python", "/var/lib/mailman/bin/add_members", "-r", mailliste_path, "-w", "n", "tihlde-info"])
 
 
 def main():
-    log('New run of the script at %s' % datetime.datetime.now())
+    log('\nNew run of the script at %s' % datetime.datetime.now())
     euid = os.geteuid()
     if euid != 0:
-        log('Exit cause by run as non-root')
+        log('Exit because by script was run without root access')
     else:
         add_all_users()
 
