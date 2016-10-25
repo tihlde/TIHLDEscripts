@@ -21,6 +21,7 @@ home_dir_mode = 700
 groupid = 7
 log_file_path = '/var/log/brukerscript.log'
 ipa_log_file_path = '/var/log/brukerscript.ipa.log'
+error_log_file_path = '/var/log/brukerscript.error.log'
 
 
 def generate_password():
@@ -49,7 +50,7 @@ def log(entry, file=log_file_path, print_entry=True):
     if print_entry:
         print(entry)
     with open(file, 'a') as log_file:
-        log_file.write('\n' + entry)
+        log_file.write(entry + '\n')
 
 
 def send_email(recipient, body):
@@ -67,8 +68,9 @@ def send_email(recipient, body):
         smtpObj = smtplib.SMTP('localhost')
         smtpObj.sendmail(sender, recipient, text)
         log('Successfully sent email to "' + recipient + '"')
-    except smtplib.SMTPException:
-        log('Error: unable to send email to "' + recipient + '"')
+    except smtplib.SMTPException as error:
+        log('Error: unable to send email to "' + recipient + '". Error-msg logged to error-log')
+        log("Error-msg when sending mail to {0}\n{1}".format(recipient, error), file=error_log_file_path, print_entry=False)
 
 
 def add_single_user(api, username, firstname, lastname, course, email, password):
@@ -87,17 +89,17 @@ def add_single_user(api, username, firstname, lastname, course, email, password)
     response = api.stageuser_add(username, info)
     error_response = response['error']
     if error_response:
-        log('An error occured when calling IPA, continuing with next user. Error logged to ipa-log')
+        log('An error occured when calling IPA for user {0}. Logged to ipa log file'.format(username))
         log(json.dumps(error_response), file=ipa_log_file_path, print_entry=False)
         return
     return response['result']['result']['uidnumber']
 
 
 def make_homedir(username, uid):
-    new_home_dir = '/home/students/%s' % username
+    new_home_dir = '/home/students/{0}'.format(username)
     # if dir exists, do nothing
     if os.path.exists(new_home_dir):
-        log('Homedir for user %s not created, "%s" already exists, continuing with next user' % (username, new_home_dir))
+        log('Homedir for user {0} not created, "{1}" already exists, continuing with next user'.format(username, new_home_dir), file=error_log_file_path)
         return
 
     # else, copy /etc/skel to /home/students/<username>
@@ -128,19 +130,20 @@ def add_all_users():
     # username, password(second line of ipa-admin password-file)
     api.login('admin', open("/home/staff/drift/passord/ipa-admin").readlines()[1].replace('\n', '').strip())
 
-    date_from = "'2016-08-01'"
-    date_to = "'2016-10-16'"
+    date_from = '2016-08-01'
+    date_to = '2016-10-16'
 
     mreg_cursor.execute(
         "SELECT fornavn, etternavn, linje, histbruker, epost FROM members "
-        "WHERE timestamp BETWEEN %s AND %s AND aktivert = '1' AND eula = '1'" % (date_from, date_to))
+        "WHERE timestamp BETWEEN '{0}' AND '{1}' AND aktivert = '1' AND eula = '1'".format(date_from, date_to))
 
-    mailliste_path = '/tmp/maillisteopptak%s.txt' % time.time()
+    mailliste_path = '/tmp/maillisteopptak{0}.txt'.format(time.time())
     mailliste_file = open(mailliste_path, 'a')
 
     # loop to add every user pulled from the database to FreeIPA and
     # send them a mail with login information
     mreg_users = mreg_cursor.fetchall()
+    log('Fetching users from database "medlemsregister"...')
 
     response = str(input(str(len(mreg_users)) + " users to add. Continue? [y/n]"))
     if response.replace('\n', '').strip() != 'y':
@@ -155,7 +158,6 @@ def add_all_users():
             continue
         firstname = str(row[0]).strip()
         lastname = str(row[1]).strip()
-        print(lastname)
         course = str(row[2]).strip()
         email = str(row[4]).strip().lower()
         generatedpw = generate_password()
@@ -192,8 +194,9 @@ def main():
     if euid != 0:
         print('Needs to be run as root. Re-run with sudo')
     else:
-        log('\nNew run of the script at %s' % datetime.datetime.now())
-        log('\nNew run of the script at %s' % datetime.datetime.now(), file=ipa_log_file_path, print_entry=False)
+        script_run_entry = '\nNew run of the script at {0}'.format(datetime.datetime.now())
+        log(script_run_entry)
+        log(script_run_entry, file=ipa_log_file_path, print_entry=False)
         add_all_users()
 
 
