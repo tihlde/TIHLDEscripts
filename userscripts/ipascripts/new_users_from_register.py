@@ -7,11 +7,11 @@ import shutil
 import smtplib
 import string
 import time
+from email.mime.multipart import MIMEMultipart
+from email.mime.text import MIMEText
 from subprocess import call
 
 import pymysql
-from email.mime.multipart import MIMEMultipart
-from email.mime.text import MIMEText
 from ipahttp import ipa
 
 external_email_body = "Brukeren din på TIHLDE-serveren Colargol har blitt opprettet. Dette fordi du signerte på brukerreglementet ved innmeldingsfesten. Reglementet er også beskrevet her: http://tihlde.org/lover/brukerreglement.htm \n\nHer har du nå fått tildelt en shellkonto med 10GB lagringsplass, TIHLDE-epost, samt webhotell for adressen din http://{0}.tihlde.org og masse annet snacks. For å se alt vi tilbyr kan du sjekke https://tihlde.org/tjenester/. \n\nDu kan logge inn med SSH (Last ned putty om du bruker windows) på hostnavn: tihlde.org\nBrukernavn: {0}\nPassord: {1}\n\nDu vil bli bedt om å skifte passord ved første innlogging, det kan endres senere med kommando 'passwd'. Dette passordet blir syncet med andre tjenster vi tilbyr i TIHLDE. Teknisk hjelp finnes på http://tihlde.org/ . Andre tekniske henvendelser kan sendes på mail til support@tihlde.org\n\nMvh\ndrift@tihlde.org"
@@ -70,7 +70,8 @@ def send_email(recipient, body):
         log('Successfully sent email to "' + recipient + '"')
     except smtplib.SMTPException as error:
         log('Error: unable to send email to "' + recipient + '". Error-msg logged to error-log')
-        log("Error-msg when sending mail to {0}\n{1}".format(recipient, error), file=error_log_file_path, print_entry=False)
+        log("Error-msg when sending mail to {0}\n{1}".format(recipient, error), file=error_log_file_path,
+            print_entry=False)
 
 
 def add_single_user(api, username, firstname, lastname, course, email, password):
@@ -99,14 +100,14 @@ def make_homedir(username, uid):
     new_home_dir = '/home/students/{0}'.format(username)
     # if dir exists, do nothing
     if os.path.exists(new_home_dir):
-        log('Homedir for user {0} not created, "{1}" already exists, continuing with next user'.format(username, new_home_dir), file=error_log_file_path)
+        log('Homedir for user {0} not created, "{1}" already exists, skipping'.format(username, new_home_dir),
+            file=error_log_file_path)
         return
 
     # else, copy /etc/skel to /home/students/<username>
     shutil.copytree('/etc/skel', new_home_dir)
     # chown <username>:students /home/students/<username>
     call(['chown', '-R', uid + ':' + str(linux_groupid), new_home_dir])
-    # os.chown(path=new_home_dir, uid=uid, gid=linux_groupid)
     # chmod 700 /home/students/<username>
     os.chmod(path=new_home_dir, mode=0o700)
 
@@ -119,7 +120,7 @@ def add_all_users():
     # Connection to the database
     mreg_db = pymysql.connect(host="tihlde.org",
                               user="medlemsregister",
-                              password=open("/home/staff/drift/passord/db-medlemsregister").readline().replace('\n', ''),
+                              password=open("/home/staff/drift/passord/db-medlemsregister").readline().rstrip('\n'),
                               database="medlemsregister",
                               charset='utf8')
     mreg_cursor = mreg_db.cursor()
@@ -176,7 +177,6 @@ def add_all_users():
         apache_cursor.execute(
             "INSERT INTO `apache`.`brukere` (`id`, `brukernavn`, `gruppe`, `expired`, `deaktivert`, `webdav`, `kommentar`) "
             "VALUES (NULL, '{0}', '{1}', 'false', 'false', 'false', '');".format(username, str(sql_groupid)))
-
 
     # close mailliste_file
     mailliste_file.close()
