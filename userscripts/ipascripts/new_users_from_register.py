@@ -106,7 +106,7 @@ def make_homedir(username, uid):
 
     # else, copy /etc/skel to /home/students/<username>
     shutil.copytree('/etc/skel', new_home_dir)
-    # chown <username>:students /home/students/<username>
+    # chown <uid>:<gid> /home/students/<username>
     call(['chown', '-R', uid + ':' + str(linux_groupid), new_home_dir])
     # chmod 700 /home/students/<username>
     os.chmod(path=new_home_dir, mode=0o700)
@@ -117,20 +117,20 @@ def add_all_users():
     mailliste_path = '/tmp/maillisteopptak{0}.txt'.format(time.time())
     mailliste_file = open(mailliste_path, 'a')
 
-    # Connection to the database
-    mreg_db = pymysql.connect(host="tihlde.org",
-                              user="medlemsregister",
-                              password=open("/home/staff/drift/passord/db-medlemsregister").readline().rstrip('\n'),
-                              database="medlemsregister",
-                              charset='utf8')
-    mreg_cursor = mreg_db.cursor()
-
-    apache_db = pymysql.connect(host="localhost",
-                                user="apache",
-                                password=open("/home/staff/drift/passord/db-apache").readline().replace('\n', ''),
-                                database="apache",
+    # Connections to the databases
+    mreg_conn = pymysql.connect(host="tihlde.org",
+                                user="medlemsregister",
+                                password=open("/home/staff/drift/passord/db-medlemsregister").readline().rstrip('\n'),
+                                database="medlemsregister",
                                 charset='utf8')
-    apache_cursor = apache_db.cursor()
+    mreg_cursor = mreg_conn.cursor()
+
+    apache_conn = pymysql.connect(host="localhost",
+                                  user="apache",
+                                  password=open("/home/staff/drift/passord/db-apache").readline().replace('\n', ''),
+                                  database="apache",
+                                  charset='utf8')
+    apache_cursor = apache_conn.cursor()
 
     api = ipa("ipa1.tihlde.org", sslverify=True)
     # username, password(second line of ipa-admin password-file)
@@ -174,21 +174,26 @@ def add_all_users():
         send_email(username + '@tihlde.org', tihlde_email_body.format(username))  # send email to tihlde-email
 
         mailliste_file.write(username + "@tihlde.org\n")
+
         try:
             apache_cursor.execute(
                 "INSERT INTO `apache`.`brukere` (`id`, `brukernavn`, `gruppe`, `expired`, `deaktivert`, `webdav`, `kommentar`) "
                 "VALUES (NULL, '{0}', '{1}', 'false', 'false', 'false', '');".format(username, str(sql_groupid)))
-        except mysql.connector.Error as err:
-            log("Something went wrong: {}".format(err))
+        except pymysql.Error as err:
+            log('Something wen wrong when pushing user {} to the apache data'.format(username))
+            log("Error for username {0}:\n{1}".format(username, err), file=error_log_file_path, print_entry=False)
 
     # close mailliste_file
     mailliste_file.close()
-    # close databases
-    mreg_db.close()
-    apache_db.close()
+    # close database-connections
+    mreg_conn.close()
+    apache_conn.commit()
+    apache_cursor.close()
+    apache_conn.close()
 
     call(["python", "/var/lib/mailman/bin/add_members", "-r", mailliste_path, "-w", "n", "colusers"])
     call(["python", "/var/lib/mailman/bin/add_members", "-r", mailliste_path, "-w", "n", "tihlde-info"])
+    os.remove(mailliste_path)
 
 
 def main():
@@ -201,6 +206,15 @@ def main():
         log(script_run_entry, file=ipa_log_file_path, print_entry=False)
         log(script_run_entry, file=error_log_file_path, print_entry=False)
         add_all_users()
+        log('Running update_dns.bash...')
+        call(['/bin/bash', '/home/staff/drift/bin/update_dns.bash'])
+        log('Done')
+        log('Running update_vhosts.bash...')
+        call(['/bin/bash', '/home/staff/drift/bin/update_vhosts.bash'])
+        log('Done')
+        log('Reloading apache2...')
+        call(['/bin/systemctl', 'reload', 'apache2'])
+        log('Done')
 
 
 main()
