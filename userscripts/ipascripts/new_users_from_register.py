@@ -174,9 +174,12 @@ def add_all_users():
         send_email(username + '@tihlde.org', tihlde_email_body.format(username))  # send email to tihlde-email
 
         mailliste_file.write(username + "@tihlde.org\n")
-        apache_cursor.execute(
-            "INSERT INTO `apache`.`brukere` (`id`, `brukernavn`, `gruppe`, `expired`, `deaktivert`, `webdav`, `kommentar`) "
-            "VALUES (NULL, '{0}', '{1}', 'false', 'false', 'false', '');".format(username, str(sql_groupid)))
+        try:
+            apache_cursor.execute(
+                "INSERT INTO `apache`.`brukere` (`id`, `brukernavn`, `gruppe`, `expired`, `deaktivert`, `webdav`, `kommentar`) "
+                "VALUES (NULL, '{0}', '{1}', 'false', 'false', 'false', '');".format(username, str(sql_groupid)))
+        except mysql.connector.Error as err:
+            log("Something went wrong: {}".format(err))
 
     # close mailliste_file
     mailliste_file.close()
