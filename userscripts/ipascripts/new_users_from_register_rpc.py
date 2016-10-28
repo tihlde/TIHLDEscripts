@@ -7,6 +7,7 @@ import shutil
 import smtplib
 import string
 import time
+from subprocess import call
 
 import pymysql
 from email.mime.multipart import MIMEMultipart
@@ -17,8 +18,8 @@ external_email_body = "Brukeren din på TIHLDE-serveren Colargol har blitt oppre
 
 tihlde_email_body = "Hei og velkommen til Tihlde! \n\nDu har nå fått tildelt en shellkonto med 10GB lagringsplass, TIHLDE-epost, samt webhotell for adressen din http://{0}.tihlde.org og masse annet snacks.\n\nOm du skulle få noen problemer med de digitale tjenestene som Tihlde tilbyr til sine medlemmer så er det bare å ta kontakt på support@tihlde.org\n\nMvh\ndrift@tihlde.org"
 
-home_dir_mode = 700
-groupid = 7
+sql_groupid = 7
+linux_groupid = 1007
 log_file_path = '/var/log/brukerscript.log'
 ipa_log_file_path = '/var/log/brukerscript.ipa.log'
 error_log_file_path = '/var/log/brukerscript.error.log'
@@ -54,8 +55,7 @@ def log(entry, file=log_file_path, print_entry=True):
 
 
 def send_email(recipient, body):
-    # TODO remove when user_add is used
-    recipient = "harald_fw@live.no"
+    # recipient = "harald_fw@live.no"
 
     sender = 'drift@tihlde.org'
     msg = MIMEMultipart()
@@ -82,11 +82,12 @@ def add_single_user(api, username, firstname, lastname, course, email, password)
             "sn": lastname,
             "userpassword": password,
             "gecos": gecos,
-            "gidnumber": "1007",
+            "gidnumber": linux_groupid,
             "homedirectory": "/home/students/" + username
         }
     # TODO change to user_add when script is done
-    response = api.stageuser_add(username, info)
+    # response = api.stageuser_add(username, info)
+    response = api.user_add(username, info)
     error_response = response['error']
     if error_response:
         log('An error occured when calling IPA for user {0}. Logged to ipa log file'.format(username))
@@ -105,12 +106,17 @@ def make_homedir(username, uid):
     # else, copy /etc/skel to /home/students/<username>
     shutil.copytree('/etc/skel', new_home_dir)
     # chown <username>:students /home/students/<username>
-    os.chown(path=new_home_dir, uid=uid, gid=groupid)
+    call(['chown', '-R', username + ':' + str(linux_groupid), new_home_dir])
+    # os.chown(path=new_home_dir, uid=uid, gid=linux_groupid)
     # chmod 700 /home/students/<username>
-    os.chmod(path=new_home_dir, mode=home_dir_mode)
+    os.chmod(path=new_home_dir, mode=0o700)
 
 
 def add_all_users():
+    # file to store email-addresses to add to mailinglists to
+    mailliste_path = '/tmp/maillisteopptak{0}.txt'.format(time.time())
+    mailliste_file = open(mailliste_path, 'a')
+
     # Connection to the database
     mreg_db = pymysql.connect(host="tihlde.org",
                               user="medlemsregister",
@@ -130,20 +136,17 @@ def add_all_users():
     # username, password(second line of ipa-admin password-file)
     api.login('admin', open("/home/staff/drift/passord/ipa-admin").readlines()[1].replace('\n', '').strip())
 
+    log('Fetching users from database "medlemsregister"...')
+
     date_from = '2016-08-01'
     date_to = '2016-10-16'
-
     mreg_cursor.execute(
         "SELECT fornavn, etternavn, linje, histbruker, epost FROM members "
         "WHERE timestamp BETWEEN '{0}' AND '{1}' AND aktivert = '1' AND eula = '1'".format(date_from, date_to))
 
-    mailliste_path = '/tmp/maillisteopptak{0}.txt'.format(time.time())
-    mailliste_file = open(mailliste_path, 'a')
-
     # loop to add every user pulled from the database to FreeIPA and
     # send them a mail with login information
     mreg_users = mreg_cursor.fetchall()
-    log('Fetching users from database "medlemsregister"...')
 
     response = str(input(str(len(mreg_users)) + " users to add. Continue? [y/n]"))
     if response.replace('\n', '').strip() != 'y':
@@ -172,12 +175,12 @@ def add_all_users():
         send_email(username + '@tihlde.org', tihlde_email_body.format(username))  # send email to tihlde-email
 
         mailliste_file.write(username + "@tihlde.org\n")
-
-        # apache_cursor.execute(
-        #     "INSERT INTO `apache`.`brukere` (`id`, `brukernavn`, `gruppe`, `expired`, `deaktivert`, `webdav`, `kommentar`) "
-        #     "VALUES (NULL, '{0}', '{1}', 'false', 'false', 'false', '');".format(username, str(groupid)))
         # TODO uncomment when run with user_add and not stageuser_add
-        # make_homedir(username, uid)
+        apache_cursor.execute(
+            "INSERT INTO `apache`.`brukere` (`id`, `brukernavn`, `gruppe`, `expired`, `deaktivert`, `webdav`, `kommentar`) "
+            "VALUES (NULL, '{0}', '{1}', 'false', 'false', 'false', '');".format(username, str(sql_groupid)))
+        # TODO uncomment when run with user_add and not stageuser_add
+        make_homedir(username, uid)
 
     # close mailliste_file
     mailliste_file.close()
@@ -185,8 +188,8 @@ def add_all_users():
     mreg_db.close()
     apache_db.close()
     # TODO uncomment when run with user_add and not stageuser_add
-    # call(["python", "/var/lib/mailman/bin/add_members", "-r", mailliste_path, "-w", "n", "colusers"])
-    # call(["python", "/var/lib/mailman/bin/add_members", "-r", mailliste_path, "-w", "n", "tihlde-info"])
+    call(["python", "/var/lib/mailman/bin/add_members", "-r", mailliste_path, "-w", "n", "colusers"])
+    call(["python", "/var/lib/mailman/bin/add_members", "-r", mailliste_path, "-w", "n", "tihlde-info"])
 
 
 def main():
