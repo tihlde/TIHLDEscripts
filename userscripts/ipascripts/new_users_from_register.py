@@ -155,9 +155,6 @@ def add_all_users():
     for row in mreg_users:
         # Extract data from row. order: fornavn, etternavn, linje, histbruker, epost
         username = str(row[3]).strip().lower()
-        if username == 'gabrieju' or username == 'magnushy' or username == 'martilid':
-            log('Skipping user ' + username)
-            continue
         firstname = str(row[0]).strip()
         lastname = str(row[1]).strip()
         course = str(row[2]).strip()
