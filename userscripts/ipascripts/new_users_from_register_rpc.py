@@ -85,8 +85,7 @@ def add_single_user(api, username, firstname, lastname, course, email, password)
             "gidnumber": linux_groupid,
             "homedirectory": "/home/students/" + username
         }
-    # TODO change to user_add when script is done
-    # response = api.stageuser_add(username, info)
+
     response = api.user_add(username, info)
     error_response = response['error']
     if error_response:
@@ -106,7 +105,7 @@ def make_homedir(username, uid):
     # else, copy /etc/skel to /home/students/<username>
     shutil.copytree('/etc/skel', new_home_dir)
     # chown <username>:students /home/students/<username>
-    call(['chown', '-R', username + ':' + str(linux_groupid), new_home_dir])
+    call(['chown', '-R', uid + ':' + str(linux_groupid), new_home_dir])
     # os.chown(path=new_home_dir, uid=uid, gid=linux_groupid)
     # chmod 700 /home/students/<username>
     os.chmod(path=new_home_dir, mode=0o700)
@@ -171,23 +170,23 @@ def add_all_users():
             log('Skipped sending emails, creating homedir and adding to mailinglist for user {0}'.format(username))
             continue
 
+        make_homedir(username, uid)
+
         send_email(email, external_email_body.format(username, generatedpw))  # send email to external email
         send_email(username + '@tihlde.org', tihlde_email_body.format(username))  # send email to tihlde-email
 
         mailliste_file.write(username + "@tihlde.org\n")
-        # TODO uncomment when run with user_add and not stageuser_add
         apache_cursor.execute(
             "INSERT INTO `apache`.`brukere` (`id`, `brukernavn`, `gruppe`, `expired`, `deaktivert`, `webdav`, `kommentar`) "
             "VALUES (NULL, '{0}', '{1}', 'false', 'false', 'false', '');".format(username, str(sql_groupid)))
-        # TODO uncomment when run with user_add and not stageuser_add
-        make_homedir(username, uid)
+
 
     # close mailliste_file
     mailliste_file.close()
     # close databases
     mreg_db.close()
     apache_db.close()
-    # TODO uncomment when run with user_add and not stageuser_add
+
     call(["python", "/var/lib/mailman/bin/add_members", "-r", mailliste_path, "-w", "n", "colusers"])
     call(["python", "/var/lib/mailman/bin/add_members", "-r", mailliste_path, "-w", "n", "tihlde-info"])
 
@@ -200,6 +199,7 @@ def main():
         script_run_entry = '\nNew run of the script at {0}'.format(datetime.datetime.now())
         log(script_run_entry)
         log(script_run_entry, file=ipa_log_file_path, print_entry=False)
+        log(script_run_entry, file=error_log_file_path, print_entry=False)
         add_all_users()
 
 
