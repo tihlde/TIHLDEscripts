@@ -3,7 +3,7 @@ import os
 import sys
 import time
 
-import userscripts.userlib as lib
+import userlib as lib
 
 __author__ = 'Harald Floor Wilhelmsen'
 
