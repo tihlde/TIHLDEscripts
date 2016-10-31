@@ -8,7 +8,7 @@ from email.mime.text import MIMEText
 
 import pymysql
 
-from userscripts.ipahttp import ipa
+from ipahttp import ipa
 
 __author__ = 'Harald Floor Wilhelmsen'
 
