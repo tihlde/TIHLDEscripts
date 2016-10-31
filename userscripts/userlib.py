@@ -159,4 +159,14 @@ def send_email(recipient, subject, body, sender='drift@tihlde.org', smtp_host='l
 def user_get(username, api=None):
     if not api:
         api = get_ipa_api()
-    api.user_find(username)
+    return api.user_find(username)
+
+
+def user_exists_from_output(user_get_output):
+    return user_get_output['result']['summary'] != '0 users matched'
+
+
+def user_exists(username, api=None):
+    if not api:
+        api = get_ipa_api()
+    return user_exists_from_output(user_get(username, api))
