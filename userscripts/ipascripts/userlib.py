@@ -1,4 +1,5 @@
 # coding: utf-8
+import os
 import random
 import smtplib
 import string
@@ -10,6 +11,10 @@ import pymysql
 from userscripts.ipascripts.ipahttp import ipa
 
 __author__ = 'Harald Floor Wilhelmsen'
+
+
+def is_root():
+    return os.geteuid() == 0
 
 
 def generate_password(pwlen):
@@ -50,19 +55,26 @@ def get_ipa_api(uri='ipa1.tihlde.org'):
     return api
 
 
-def add_user_ipa(username, firstname, lastname, course, email, groupid, password=None, api=None):
+def add_user_ipa(username, firstname, lastname, groupid, homedir_base, course=None, email=None, password=None,
+                 api=None):
     """
     Adds a single user to ipa and apache
+    :param homedir_base: the directory to place this user's home in. Example: /home/students/
     :param password: The password of the new user. If null, one will be generated using @generate_password
-    :param api: API towards FREEIPA. This method assumes a login-request has been successful towards the IPA-server. \
+    :param api: API towards FREEIPA. This method assumes a login-request has been successful towards the IPA-server.
             If None, an ipa api object will be created towards ipa1.tihlde.org, and a login-request will be sent.
-    :return: The password and user id of the created user
+            If adding more than one user, you should get the api first, using the method @get_ipa_api and pass it
+            in to all your method-calls.
+    :return: The password and user id of the created user in an array; [uid, pw]
     """
     if not api:
         api = get_ipa_api()
 
     if not password:
         password = generate_password(12)
+
+    if not homedir_base[-1] == '/':
+        homedir_base += '/'
 
     gecos = str(firstname) + ' ' + str(lastname) + ' ,' + str(email) + ' ,' + str(course)
 
@@ -73,7 +85,7 @@ def add_user_ipa(username, firstname, lastname, course, email, groupid, password
             "userpassword": password,
             "gecos": gecos,
             "gidnumber": groupid,
-            "homedirectory": "/home/students/" + username
+            "homedirectory": homedir_base + username
         }
 
     response = api.user_add(username, info)
@@ -142,3 +154,9 @@ def send_email(recipient, subject, body, sender='drift@tihlde.org', smtp_host='l
         smtpObj.sendmail(sender, recipient, text)
     except smtplib.SMTPException as error:
         return 'Error: unable to send email to "{0}". Error-msg:\n{1}'.format(recipient, error)
+
+
+def user_get(username, api=None):
+    if not api:
+        api = get_ipa_api()
+    api.user_find(username)
