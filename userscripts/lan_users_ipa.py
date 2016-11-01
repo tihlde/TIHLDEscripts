@@ -3,7 +3,7 @@ import os
 import sys
 import time
 
-import lib.userlib as lib
+import tihldelib.userlib as lib
 
 __author__ = 'Harald Floor Wilhelmsen'
 
