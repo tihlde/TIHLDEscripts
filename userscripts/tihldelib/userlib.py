@@ -96,6 +96,15 @@ def add_user_ipa(username, firstname, lastname, groupid, homedir_base, course=No
 
 
 def mysql_connect(host, username, password, database_name, charset='utf8'):
+    """
+    Returns a connection-object to a MySQL database.
+    :param host: host with database
+    :param username: username to authenticate towards mysql
+    :param password: password to authenticate towards mysql
+    :param database_name: name of database
+    :param charset: charset of communications between you and the database. Should not be overridden.
+    :return: The connection object
+    """
     return pymysql.connect(host=host,
                            user=username,
                            password=password,
@@ -157,16 +166,34 @@ def send_email(recipient, subject, body, sender='drift@tihlde.org', smtp_host='l
 
 
 def user_get(username, api=None):
+    """
+    Gets a user from the given ipa api-object.
+    :param username: username of the user to get
+    :param api: Api towards the ipa-server. Should be overriden if this method should be used more than once.
+            If None is given this method will create it's own api-object
+    :return: A dictionary with response-data from IPA. You can use @user_exists_from_output with this output-
+            object to find if a user exists.
+    """
     if not api:
         api = get_ipa_api()
     return api.user_find(username)
 
 
 def user_exists_from_output(user_get_output):
+    """
+    Returns True or False representing if a user exists or not, based on output from @user_get.
+    :param user_get_output: Output from @user_get
+    :return: True if the user exists. False otherwise
+    """
     return user_get_output['result']['summary'] != '0 users matched'
 
 
 def user_exists(username, api=None):
-    if not api:
-        api = get_ipa_api()
+    """
+    Uses @user_get and @user_exists_from_output to figure out the given user exists.
+    :param username: username of the user to check
+    :param api: api towards ipa. If not overridden a new api-object will be created towards ipa1.tihlde.org
+            for each call of this method.
+    :return: True if the user exists. False otherwise
+    """
     return user_exists_from_output(user_get(username, api))
