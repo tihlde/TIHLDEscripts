@@ -12,4 +12,6 @@ __author__ = 'Harald Floor Wilhelmsen'
 # endre gruppetilhoerlighet paa alle filer i hjemmemappa med gruppe 'students' og mappa selv
 # legg til i alias hs@tihlde.org og mailingsliste
 # oppdater mysql-db med ny gruppe
+# fjern shadow_expire
+# fjern ~kerberos principal expire
 # update vhosts
