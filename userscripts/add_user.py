@@ -1,0 +1,70 @@
+# coding: utf-8
+import sys
+
+import tihldelib.userlib as userlib
+__author__ = 'Harald Floor Wilhelmsen'
+
+
+def parse_args():
+    """
+    :return: A string-array containing the arguments.
+    Order: [username, groupname, email, course, year, first_name, last_name]
+    """
+    args = sys.argv
+    if len(args) == 8:
+        return args[1:]
+    if len(args) == 2 and args[1] == 'help':
+        help_msg = 'Adds a single user to ipa and apache.\n\n' \
+                   'Usage:\npython3 add_user.py <username> <group-id linux> <group-id sql> <quota in GB> ' \
+                   '<external email> <course> <year> <first name> <surname>\n\n' \
+                   'username: login username for the new user\n' \
+                   'groupname: name of the group to add the user to' \
+                   'external email: gmail of whatever email address that is NOT @tihlde.org.\n' \
+                   'course: what course the user attends e. g. "ING" or "BADR"\n' \
+                   'year: year of admission into TIHLDE\n' \
+                   'first name: the new user\'s first name in quotes. E. g. "Harald Floor"\n' \
+                   'surname: the new user\'s surname'
+
+        print(help_msg)
+        sys.exit(0)
+    else:
+        print('Incorrect number of arguments given. For usage:\npython3 add_user.py help')
+        sys.exit(0)
+
+
+def main():
+    args = parse_args()
+
+    username = args[0]
+    group_name = args[1]
+    email = args[2]
+    course = args[3]
+    year = args[4]
+    first_name = args[5]
+    surname = args[6]
+
+    group_info = userlib.get_group_info(group_name)
+    gid_lx = group_info['gid_lx']
+    gid_sql = group_info['gid_sql']
+    homedir_base = group_info['homedir_base']
+    quota = group_info['quota']
+
+    api = userlib.get_ipa_api()
+    userlib.add_user_ipa(username=username,
+                         firstname=first_name,
+                         lastname=surname,
+                         groupid=gid_lx,
+                         homedir_base=homedir_base,
+                         course=course,
+                         email=email,
+                         api=api)
+
+    userlib.add_user_apache(username=username,
+                            groupid=gid_sql)
+
+    userlib.set_quota(username, quota)
+
+
+
+
+main()
