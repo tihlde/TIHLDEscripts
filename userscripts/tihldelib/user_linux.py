@@ -9,7 +9,7 @@ __author__ = 'Harald Floor Wilhelmsen'
 
 
 def is_root():
-    return os.geteuid() == 0
+    return os.geteuid == 0
 
 
 def get_group_info(group_name):
@@ -34,6 +34,10 @@ def make_home_dir(homedir_base, username, uid, linux_groupid):
     call(['chown', '-R', uid + ':' + str(linux_groupid), new_home_dir])
     # chmod 700 /home/students/<username>
     os.chmod(path=new_home_dir, mode=0o700)
+
+
+def kill_user_processes(username):
+    call(['killall', '--user', username, '--signal', '[15,9]'])
 
 
 def set_quota(uid, quota_value):

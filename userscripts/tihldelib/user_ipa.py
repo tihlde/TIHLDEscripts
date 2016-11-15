@@ -95,3 +95,17 @@ def user_exists(username, api=None):
     """
     api = get_ipa_api_if_not_exists(api)
     return user_exists_from_output(user_get(username, api))
+
+
+def user_get_group(username, api=None):
+    """
+    Gets a user groups from the given ipa api-object.
+    :param username: username of the user to get
+    :param api: Api towards the ipa-server. Should be overriden if this method should be used more than once.
+            If None is given this method will create it's own api-object
+    :return: A dictionary with response-data from IPA.
+    """
+    if not api:
+        api = get_ipa_api()
+
+    return api.user_show(username)['result']['result']['memberof_group']
