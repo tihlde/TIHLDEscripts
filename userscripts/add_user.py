@@ -1,7 +1,10 @@
 # coding: utf-8
 import sys
 
-import tihldelib.userlib as userlib
+import tihldelib.user_ipa as user_ipa
+import tihldelib.user_linux as user_linux
+import tihldelib.user_sql as user_sql
+
 __author__ = 'Harald Floor Wilhelmsen'
 
 
@@ -43,27 +46,29 @@ def main():
     first_name = args[5]
     surname = args[6]
 
-    group_info = userlib.get_group_info(group_name)
+    group_info = user_linux.get_group_info(group_name)
     gid_lx = group_info['gid_lx']
     gid_sql = group_info['gid_sql']
     homedir_base = group_info['homedir_base']
     quota = group_info['quota']
 
-    api = userlib.get_ipa_api()
-    userlib.add_user_ipa(username=username,
-                         firstname=first_name,
-                         lastname=surname,
-                         groupid=gid_lx,
-                         homedir_base=homedir_base,
-                         course=course,
-                         email=email,
-                         api=api)
+    api = user_ipa.get_ipa_api()
+    ipa_return = user_ipa.add_user_ipa(username=username,
+                                       firstname=first_name,
+                                       lastname=surname,
+                                       groupid=gid_lx,
+                                       homedir_base=homedir_base,
+                                       course=course,
+                                       email=email,
+                                       api=api)
 
-    userlib.add_user_apache(username=username,
-                            groupid=gid_sql)
+    uid = ipa_return[0]
+    generated_pw = ipa_return[1]
 
-    userlib.set_quota(username, quota)
+    user_sql.add_user_apache(username=username,
+                             groupid=gid_sql)
 
+    user_linux.set_quota(uid, quota)
 
 
 

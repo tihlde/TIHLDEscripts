@@ -15,8 +15,9 @@ def is_root():
 def get_group_info(group_name):
     user_groups = {'students': {'homedir_base': '/home/students', 'gid_lx': 1007, 'gid_sql': 7, 'quota': '10G'},
                    'drift': {'homedir_base': '/home/staff', 'gid_lx': 1010, 'gid_sql': 10, 'quota': '100G'},
-                   'hs': {'homedir_base': '/home/hs', 'gid_lx': 1006, 'gid_sql': 6, 'quota': '10G'},
-                   'xhs': {'homedir_base': '/home/hs', 'gid_lx': 1012, 'gid_sql': 12, 'quota': '10G'}}
+                   'xdrift': {'homedir_base': '/home/xdrift', 'gid_lx': 1011, 'gid_sql': 11, 'quota': '100G'},
+                   'hs': {'homedir_base': '/home/hs', 'gid_lx': 1006, 'gid_sql': 6, 'quota': '20G'},
+                   'xhs': {'homedir_base': '/home/xhs', 'gid_lx': 1012, 'gid_sql': 12, 'quota': '20G'}}
     return user_groups[group_name]
 
 
