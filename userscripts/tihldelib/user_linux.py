@@ -1,6 +1,7 @@
 # coding: utf-8
 import os
 import shutil
+import sys
 from subprocess import call
 
 import tihldelib.user_general as user_general
@@ -11,6 +12,10 @@ __author__ = 'Harald Floor Wilhelmsen'
 def is_root():
     return os.geteuid == 0
 
+def check_root():
+    if not is_root:
+        print('Script must be run with root privileges.')
+        sys.exit(1)
 
 def get_group_info(group_name):
     user_groups = {'students': {'homedir_base': '/home/students', 'gid_lx': 1007, 'gid_sql': 7, 'quota': '10G'},

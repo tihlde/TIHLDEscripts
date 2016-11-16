@@ -4,7 +4,7 @@ __author__ = 'Harald Floor Wilhelmsen'
 import sys
 import argparse
 
-from tihldelib.user_linux import is_root, kill_user_processes
+from tihldelib.user_linux import check_root, kill_user_processes
 from tihldelib.user_ipa import user_exists, user_get_group
 
 
@@ -38,9 +38,7 @@ def main(args):
 
 
 if __name__ == "__main__":
-    if not is_root:
-        print('du er ikke root')
-        sys.exit(1)
+    check_root()
 
     parse = argparse.ArgumentParser(description='Script to convert user to staff user.')
     parse.add_argument('username', type=str, help='The user to convert to staff user.')

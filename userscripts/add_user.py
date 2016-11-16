@@ -5,6 +5,9 @@ import tihldelib.user_ipa as user_ipa
 import tihldelib.user_linux as user_linux
 import tihldelib.user_sql as user_sql
 
+from tihldelib.user_linux import check_root
+
+
 __author__ = 'Harald Floor Wilhelmsen'
 
 
@@ -23,7 +26,7 @@ def parse_args():
                    'username: login username for the new user\n' \
                    'groupname: name of the group to add the user to' \
                    'external email: gmail of whatever email address that is NOT @tihlde.org.\n' \
-                   'course: what course the user attends e. g. "ING" or "BADR"\n' \
+                   'course: what course the user attends e. g. "ING", "BABED", "MASTER" or "BADR"\n' \
                    'year: year of admission into TIHLDE\n' \
                    'first name: the new user\'s first name in quotes. E. g. "Harald Floor"\n' \
                    'surname: the new user\'s surname'
@@ -36,6 +39,7 @@ def parse_args():
 
 
 def main():
+    check_root()
     args = parse_args()
 
     username = args[0]
