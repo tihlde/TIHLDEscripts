@@ -70,6 +70,7 @@ def main():
 
     user_linux.set_quota(uid, quota)
 
+    # add to mailing-lists
 
 
 main()
