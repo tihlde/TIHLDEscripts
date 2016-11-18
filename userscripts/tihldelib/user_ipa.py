@@ -1,4 +1,6 @@
 # coding: utf-8
+import os
+
 import tihldelib.user_general as user_general
 from tihldelib.ipahttp import ipa
 
@@ -109,3 +111,20 @@ def user_get_group(username, api=None):
         api = get_ipa_api()
 
     return api.user_show(username)['result']['result']['memberof_group']
+
+
+def set_homedirectory(username, path, api=None):
+    """
+    Set homedirectory for user.
+    :param username: username of the user to get
+    :param path: path to homedirectory.
+    :param api: Api towards the ipa-server. Should be overriden if this method should be used more than once.
+            If None is given this method will create it's own api-object
+    :return: A dictionary with response-data from IPA.
+    """
+    if not api:
+        api = get_ipa_api()
+
+#    if not os.path.isdir(path):
+#        return False
+
