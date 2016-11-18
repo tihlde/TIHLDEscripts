@@ -28,7 +28,7 @@ class ipa(object):
         rv = None
         ipaurl = 'https://{0}/ipa/session/login_password'.format(self.server)
         header = {'referer': ipaurl, 'Content-Type':
-            'application/x-www-form-urlencoded', 'Accept': 'text/plain'}
+                  'application/x-www-form-urlencoded', 'Accept': 'text/plain'}
         login = {'user': user, 'password': password}
         rv = self.session.post(ipaurl, headers=header, data=login,
                                verify=self.sslverify)
@@ -53,15 +53,15 @@ class ipa(object):
                   'Accept': 'application/json'}
 
         data = {'id': 0, 'method': pdict['method'], 'params':
-            [pdict['item'], pdict['params']]}
+                [pdict['item'], pdict['params']]}
 
         self.log.debug('Making {0} request to {1}'.format(pdict['method'],
-                                                          session_url))
+                        session_url))
 
         request = self.session.post(
-            session_url, headers=header,
-            data=json.dumps(data),
-            verify=self.sslverify
+                session_url, headers=header,
+                data=json.dumps(data),
+                verify=self.sslverify
         )
         results = request.json()
 
@@ -80,7 +80,7 @@ class ipa(object):
                  'all': True,
                  'description': description
              }
-             }
+        }
         if gidnumber is not None:
             m['params']['gidnumber'] = gidnumber
         results = self.makeReq(m)
@@ -92,35 +92,54 @@ class ipa(object):
             raise ValueError('Type {0} is not a valid member type,\
              specify user or group'.format(membertype))
         m = {
-            'item': [group],
-            'method': 'group_add_member',
-            'params': {
-                'all': True,
-                'raw': True,
-                membertype: item
+                'item': [group],
+                'method': 'group_add_member',
+                'params': {
+                    'all': True,
+                    'raw': True,
+                    membertype: item
+                }
+        }
+        results = self.makeReq(m)
+
+        return results
+
+    def group_remove_member(self, group, items, membertype):
+        if isinstance(items, str):
+            items = [items]
+        m = {
+            "method": "group_remove_member",
+            "item": [group],
+            "params": {
+                "all": False,
+                "no_members": False,
+                "raw": False,
+                "user": items,
+                "version": "2.164"
             }
         }
         results = self.makeReq(m)
 
         return results
 
+
     def group_find(self, group=None, sizelimit=40000):
         m = {'method': 'group_find', 'item': [group], 'params': {'all': True,
-                                                                 'sizelimit': sizelimit}}
+             'sizelimit': sizelimit}}
         results = self.makeReq(m)
 
         return results
 
     def group_show(self, group):
         m = {'item': [group], 'method': 'group_show', 'params':
-            {'all': True, 'raw': False}}
+             {'all': True, 'raw': False}}
         results = self.makeReq(m)
 
         return results
 
     def host_add(self, hostname, opasswd, force=True):
         m = {'item': [hostname], 'method': 'host_add', 'params': {'all': True,
-                                                                  'force': force, 'userpassword': opasswd}}
+             'force': force, 'userpassword': opasswd}}
         results = self.makeReq(m)
 
         return results
@@ -133,7 +152,7 @@ class ipa(object):
 
     def host_find(self, hostname=None, in_hg=None, sizelimit=40000):
         m = {'method': 'host_find', 'item': [hostname], 'params':
-            {'all': True, 'in_hostgroup': in_hg, 'sizelimit': sizelimit}}
+             {'all': True, 'in_hostgroup': in_hg, 'sizelimit': sizelimit}}
         results = self.makeReq(m)
 
         return results
@@ -141,28 +160,28 @@ class ipa(object):
     def host_mod(self, hostname, description=None, locality=None,
                  location=None, platform=None, osver=None):
         m = {'item': [hostname], 'method': 'host_mod', 'params':
-            {'all': True, 'description': description, 'locality': locality,
-             'nshostlocation': location, 'nshardwareplatform': platform,
-             'nsosversion': osver}}
+             {'all': True, 'description': description, 'locality': locality,
+              'nshostlocation': location, 'nshardwareplatform': platform,
+              'nsosversion': osver}}
         results = self.makeReq(m)
 
         return results
 
     def host_show(self, hostname):
         m = {'item': [hostname], 'method': 'host_show', 'params':
-            {'all': True}}
+             {'all': True}}
         results = self.makeReq(m)
 
         return results
 
     def hostgroup_add(self, hostgroup, description=None):
         m = {
-            'method': 'hostgroup_add',
-            'item': [hostgroup],
-            'params': {
-                'all': True,
-                'description': description
-            }
+                'method': 'hostgroup_add',
+                'item': [hostgroup],
+                'params': {
+                    'all': True,
+                    'description': description
+                }
         }
         results = self.makeReq(m)
 
@@ -172,9 +191,9 @@ class ipa(object):
         if type(hostname) != list:
             hostname = [hostname]
         m = {
-            'method': 'hostgroup_add_member',
-            'item': [hostgroup],
-            'params': {'host': hostname, 'all': True}
+                'method': 'hostgroup_add_member',
+                'item': [hostgroup],
+                'params': {'host': hostname, 'all': True}
         }
         results = self.makeReq(m)
 
@@ -182,7 +201,7 @@ class ipa(object):
 
     def hostgroup_show(self, hostgroup):
         m = {'item': [hostgroup], 'method': 'hostgroup_show', 'params':
-            {'all': True}}
+             {'all': True}}
         results = self.makeReq(m)
 
         return results
@@ -216,36 +235,35 @@ class ipa(object):
 
     def user_show(self, user):
         m = {'item': [user], 'method': 'user_show', 'params':
-            {'all': True, 'raw': False}}
+             {'all': True, 'raw': False}}
         results = self.makeReq(m)
 
         return results
 
     def user_status(self, user):
         m = {'item': [user], 'method': 'user_status', 'params':
-            {'all': True, 'raw': False}}
+             {'all': True, 'raw': False}}
         results = self.makeReq(m)
 
         return results
 
     def user_unlock(self, user):
         m = {'item': [user], 'method': 'user_unlock', 'params':
-            {'version': '2.112'}}
+             {'version': '2.112'}}
         results = self.makeReq(m)
 
         return results
 
     def user_mod(self, user, addattrs=[], setattrs=[], delattrs=[]):
         m = {
-            'id': 0,
             'method': 'user_mod',
             'item': [user],
             'params': {
-                'all': False,
-                'no_members': False,
-                'raw': False,
-                'rights': False,
-                'version': '2.164'
+                    'all': False,
+                    'no_members': False,
+                    'raw': False,
+                    'rights': False,
+                    'version': '2.164'
             }
         }
         if len(addattrs):
@@ -257,11 +275,24 @@ class ipa(object):
 
         return self.makeReq(m)
 
+    def user_del(self, user, preserve=True):
+        m = {
+            "item": [user],
+            "method": "user_del",
+            "params": {
+                "continue": False,
+                "preserve": preserve,
+                "version": "2.164"
+            }
+        }
+
+        return self.makeReq(m)
+
     def stageuser_find(self, user=None, attrs={}, sizelimit=40000):
         params = {'all': True,
                   'no_members': False,
                   'sizelimit': sizelimit,
-                  }
+        }
         params.update(attrs)
         m = {'item': [user], 'method': 'stageuser_find', 'params': params}
         results = self.makeReq(m)
@@ -308,6 +339,43 @@ class ipa(object):
         }
         if permissions is not None:
             m['params']['permissions'] = permissions
+        results = self.makeReq(m)
+
+        return results
+
+    def automember_add(self, name, description='', type='group'):
+        m = {
+            'method': 'automember_add',
+            'item': [name],
+            'params': {
+                'type': type,
+                'all': True,
+                'raw': False,
+                'version': '2.164'
+            }
+        }
+        if description:
+            m['params']['description'] = description
+        results = self.makeReq(m)
+
+        return results
+
+    def automember_add_condition(self, name, key, type, description='', inclusive_regex='', exclusive_regex=''):
+        m = {
+            'method': 'automember_add_condition',
+            'item': [name],
+            'params': {
+                'key': key,
+                'type': type,
+                'all': True,
+                'raw': False,
+                'version': '2.164'
+            }
+        }
+        if inclusive_regex:
+            m['params']['automemberinclusiveregex'] = inclusive_regex
+        if exclusive_regex:
+            m['params']['automemberexclusiveregex'] = exclusive_regex
         results = self.makeReq(m)
 
         return results
