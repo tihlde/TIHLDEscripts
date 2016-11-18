@@ -262,8 +262,7 @@ class ipa(object):
                     'all': False,
                     'no_members': False,
                     'raw': False,
-                    'rights': False,
-                    'version': '2.164'
+                    'rights': False
             }
         }
         if len(addattrs):

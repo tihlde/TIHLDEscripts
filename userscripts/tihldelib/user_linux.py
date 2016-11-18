@@ -17,12 +17,28 @@ def check_root():
         print('Script must be run with root privileges.')
         sys.exit(1)
 
+
 def get_group_info(group_name):
-    user_groups = {'students': {'homedir_base': '/home/students', 'gid_lx': 1007, 'gid_sql': 7, 'quota': '10G'},
-                   'drift': {'homedir_base': '/home/staff', 'gid_lx': 1010, 'gid_sql': 10, 'quota': '100G'},
-                   'xdrift': {'homedir_base': '/home/xdrift', 'gid_lx': 1011, 'gid_sql': 11, 'quota': '100G'},
-                   'hs': {'homedir_base': '/home/hs', 'gid_lx': 1006, 'gid_sql': 6, 'quota': '20G'},
-                   'xhs': {'homedir_base': '/home/xhs', 'gid_lx': 1012, 'gid_sql': 12, 'quota': '20G'}}
+    user_groups = {'students': {'homedir_base': '/home/students',
+                                'gid_lx': 1007,
+                                'gid_sql': 7,
+                                'quota': '10G'},
+                   'drift': {'homedir_base': '/home/staff',
+                             'gid_lx': 1010,
+                             'gid_sql': 10,
+                             'quota': '100G'},
+                   'xdrift': {'homedir_base': '/home/xdrift',
+                              'gid_lx': 1011,
+                              'gid_sql': 11,
+                              'quota': '100G'},
+                   'hs': {'homedir_base': '/home/hs',
+                          'gid_lx': 1006,
+                          'gid_sql': 6,
+                          'quota': '20G'},
+                   'xhs': {'homedir_base': '/home/xhs',
+                           'gid_lx': 1012,
+                           'gid_sql': 12,
+                           'quota': '20G'}}
     return user_groups[group_name]
 
 
@@ -39,6 +55,26 @@ def make_home_dir(homedir_base, username, uid, linux_groupid):
     call(['chown', '-R', uid + ':' + str(linux_groupid), new_home_dir])
     # chmod 700 /home/students/<username>
     os.chmod(path=new_home_dir, mode=0o700)
+
+
+def move_home_dir(orgpath, newpath):
+    """
+    Move home directory for user
+    :param username: username of the user to get
+    :param path: path to homedirectory.
+    """
+    return shutil.move(orgpath, newpath)
+
+
+def set_permissions(path, uid, gid, permission=0o700):
+    """
+    Set permissions for folder to user and group using chown and chmod
+    :param path: Path of the folder to set permissions for.
+    :param uid:
+    :param gid:
+    """
+    call(['chown', '-R', uid + ':' + gid, path])
+    os.chmod(path=path, mode=permission)
 
 
 def kill_user_processes(username):

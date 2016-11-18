@@ -128,3 +128,4 @@ def set_homedirectory(username, path, api=None):
 #    if not os.path.isdir(path):
 #        return False
 
+    return api.user_mod(username, setattrs=u'homedirectory={0}'.format(path))

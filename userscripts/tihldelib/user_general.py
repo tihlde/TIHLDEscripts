@@ -2,6 +2,8 @@
 import random
 import string
 
+from termcolor import colored
+
 __author__ = 'Harald Floor Wilhelmsen'
 
 
@@ -29,6 +31,11 @@ def generate_password(password_length):
         pwindex = random.randint(0, password_length - 1)
         pw[pwindex] = nums[num_index]
     return ''.join(pw)
+
+
+def color(text, c):
+    text = '[{0}]'.format(text)
+    return colored(text, c)
 
 
 def format_home_basedir(homedir_base):
