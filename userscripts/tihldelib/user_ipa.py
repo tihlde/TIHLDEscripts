@@ -1,5 +1,4 @@
 # coding: utf-8
-import os
 
 import tihldelib.user_general as user_general
 from tihldelib.ipahttp import ipa
@@ -23,6 +22,10 @@ def get_ipa_api_if_not_exists(api):
     if not api:
         return get_ipa_api()
     return api
+
+
+def ipa_error_occurred(response):
+    return response['error']
 
 
 def add_user_ipa(username, firstname, lastname, groupid, homedir_base, course=None, email=None, password=None,
@@ -125,7 +128,12 @@ def set_homedirectory(username, path, api=None):
     if not api:
         api = get_ipa_api()
 
-#    if not os.path.isdir(path):
-#        return False
+    # if not os.path.isdir(path):
+    #     return False
 
     return api.user_mod(username, setattrs=u'homedirectory={0}'.format(path))
+
+
+def set_loginshell(username, shell_new_path, api=None):
+    api = get_ipa_api_if_not_exists(api)
+    return api.user_mod(username, setattrs={'loginshell': shell_new_path})
