@@ -38,5 +38,5 @@ nosetests.xml
 .pydevproject
 
 # IntelliJ IDEA
-.idea/*
+**/.idea/*
 *.iml
