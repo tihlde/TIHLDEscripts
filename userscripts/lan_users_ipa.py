@@ -3,7 +3,7 @@ import os
 import sys
 import time
 
-import tihldelib.userlib as lib
+import tihldelib.user_ipa as ipalib
 
 __author__ = 'Harald Floor Wilhelmsen'
 
@@ -30,7 +30,7 @@ def create_lan_users():
     if response.replace('\n', '').strip() != 'y':
         return 'User called exit before adding users'
 
-    api = lib.get_ipa_api()
+    api = ipalib.get_ipa_api()
     username_format = 'lan-{}'
 
     credentials_file_path = '/root/lan_users{}.txt'.format(time.time())
@@ -38,8 +38,8 @@ def create_lan_users():
 
     for i in range(user_amount):
         username = username_format.format(i)
-        user_info = lib.add_user_ipa(username=username, firstname='Lan', lastname='Lanesen', groupid=1007,
-                                     homedir_base='/home/lan/', api=api)
+        user_info = ipalib.add_user_ipa(username=username, firstname='Lan', lastname='Lanesen', groupid=1007,
+                                        homedir_base='/home/lan/', api=api)
         credentials_file.write('Brukernavn: {0}\nPassord: {1}\n\n'.format(username, user_info[1]))
 
     credentials_file.close()
