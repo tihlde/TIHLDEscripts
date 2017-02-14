@@ -98,22 +98,12 @@ def check_expire_single_user(user, api):
                 body=mail_future_expiry_body.format(days_until_expiry, formatted_date_of_expiry))
 
 
-def check_expiry_all_users():
-    api = ipalib.get_ipa_api()
-    # liste over alle brukere i IPA
-    all_users = api.user_find()
+def check_user_expiry(all_users, api):
     for user in all_users['result']['result']:
         check_expire_single_user(user, api)
 
 
 if __name__ == '__main__':
-    check_expiry_all_users()
-
-
-# password expire
-#       send mail om det er 0, 7 eller 14 dager til
-
-
-# today = math.floor(time.time() / SECONDS_PER_DAY)
-# print(today)
-# print(strftime('%Y.%m.%d %H:%M:%S').format(datetime.today()))
+    ipa_api = ipalib.get_ipa_api()
+    # liste over alle brukere i IPA
+    check_user_expiry(ipa_api.user_find(), ipa_api)
