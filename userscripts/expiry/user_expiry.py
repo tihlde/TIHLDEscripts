@@ -9,18 +9,8 @@ from expiry import expiry_all
 from tihldelib.user_general import read_email_resource
 
 __author__ = 'Harald Floor Wilhelmsen'
-SECONDS_PER_DAY = 86400
 
 expired_shell = '/home/staff/drift/bin/expired_shell.bash'
-
-
-def format_expiry_days(days_epoch):
-    """
-    Returns a string of format YY.mm.dd of the given days since epoch
-    :param days_epoch: Days since epoch
-    :return: A string of format YY.mm.dd
-    """
-    return strftime('%Y.%m.%d').format(days_epoch * SECONDS_PER_DAY)
 
 
 def set_expired_shell_of_user(username, api):
@@ -46,10 +36,10 @@ def check_expire_single_user(user, api):
         return
 
     expiry_int = int(expiry_field)
-    formatted_date_of_expiry = format_expiry_days(expiry_int)
+    formatted_date_of_expiry = expiry_all.epochdays_to_datetime(expiry_int)
 
     # date of expiry - today
-    days_until_expiry = expiry_int - math.floor(time.time() / SECONDS_PER_DAY)
+    days_until_expiry = expiry_int - math.floor(time.time() / expiry_all.SECONDS_PER_DAY)
     # sjekk shadow-expire
     # har brukeren gaatt ut: Er expired shell ikke satt, sett expired shell
     if days_until_expiry == 0:
@@ -73,7 +63,7 @@ def check_expire_single_user(user, api):
                 username=user['uid'],
                 external_emails=user['mail'],
                 subject=mail_future_expiry.subject.format(days_until_expiry),
-                body=mail_future_expiry.body.format(days_until_expiry, formatted_date_of_expiry))
+                body=mail_future_expiry.body.format(days_until_expiry, formatted_date_of_expiry.strftime('%Y.%m.%d')))
 
 
 def check_user_expiry_all():

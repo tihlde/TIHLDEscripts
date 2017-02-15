@@ -4,10 +4,16 @@ import datetime
 import tihldelib.user_ipa as ipalib
 from expiry import password_expiry, user_expiry
 
+SECONDS_PER_DAY = 86400
 
-def format_krb_expiry(expiry_string):
+
+def krb_expiry_to_datetime(expiry_string):
     # example 20170715
     return datetime.datetime.strptime(expiry_string[:8], '%Y%m%d')
+
+
+def epochdays_to_datetime(epoch_days):
+    return datetime.datetime.utcfromtimestamp(epoch_days * SECONDS_PER_DAY)
 
 
 def get_all_users(api=ipalib.get_ipa_api()):
