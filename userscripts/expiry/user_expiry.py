@@ -5,36 +5,12 @@ from time import strftime
 
 import tihldelib.user_email as maillib
 import tihldelib.user_ipa as ipalib
+from tihldelib.user_general import read_email_resource
 
 __author__ = 'Harald Floor Wilhelmsen'
 SECONDS_PER_DAY = 86400
 
 expired_shell = '/home/staff/drift/bin/expired_shell.bash'
-
-mail_future_expiry_subject = 'Colargol-brukeren din går ut om {0} dager'
-
-mail_future_expiry_body = \
-    'Hei.' \
-    '\n' \
-    '\nColargol-brukeren din får ut om {0} dager.' \
-    '\nBrukeren går ut på dato: {1}' \
-    '\n' \
-    '\nOm du vil beholde brukeren din blabla' \
-    '\n' \
-    '\nMed vennlig hilsen' \
-    '\ndrift@TIHLDE'
-
-mail_has_expired_subject = 'Colargol-brukeren har gått ut'
-
-mail_has_expired_body = \
-    'Hei.' \
-    '\n' \
-    '\nColargol-brukeren din har gått ut' \
-    '\n' \
-    '\nOm du vil beholde brukeren din må du betale osv...' \
-    '\n' \
-    '\nMed vennlig hilsen' \
-    '\ndrift@TIHLDE'
 
 
 def format_expiry_days(days_epoch):
@@ -91,11 +67,12 @@ def check_expire_single_user(user, api):
         else:
             # det er 7, 14 eller 30 dager til brukeren går ut
             # send mail om det til brukeren
+            mail_future_expiry = read_email_resource('user_future_expiry.txt')
             send_emails(
                 username=user['uid'],
                 external_emails=user['mail'],
-                subject=mail_future_expiry_subject.format(days_until_expiry),
-                body=mail_future_expiry_body.format(days_until_expiry, formatted_date_of_expiry))
+                subject=mail_future_expiry.subject.format(days_until_expiry),
+                body=mail_future_expiry.body.format(days_until_expiry, formatted_date_of_expiry))
 
 
 def check_user_expiry(all_users, api):
