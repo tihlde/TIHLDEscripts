@@ -134,6 +134,6 @@ def set_homedirectory(username, path, api=None):
     return api.user_mod(username, setattrs=u'homedirectory={0}'.format(path))
 
 
-def set_loginshell(username, shell_new_path, api=None):
+def set_loginshell(username, shell_new_path, api=get_ipa_api()):
     api = get_ipa_api_if_not_exists(api)
     return api.user_mod(username, setattrs={'loginshell': shell_new_path})

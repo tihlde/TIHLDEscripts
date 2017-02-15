@@ -5,6 +5,7 @@ from time import strftime
 
 import tihldelib.user_email as maillib
 import tihldelib.user_ipa as ipalib
+from expiry import expiry_all
 from tihldelib.user_general import read_email_resource
 
 __author__ = 'Harald Floor Wilhelmsen'
@@ -75,12 +76,13 @@ def check_expire_single_user(user, api):
                 body=mail_future_expiry.body.format(days_until_expiry, formatted_date_of_expiry))
 
 
-def check_user_expiry(all_users, api):
-    for user in all_users['result']['result']:
-        check_expire_single_user(user, api)
+def check_user_expiry_all():
+    ipa_api = ipalib.get_ipa_api()
+    # liste over alle brukere i IPA
+    all_users = expiry_all.get_all_users(ipa_api)
+    for user in all_users:
+        check_expire_single_user(user, ipa_api)
 
 
 if __name__ == '__main__':
-    ipa_api = ipalib.get_ipa_api()
-    # liste over alle brukere i IPA
-    check_user_expiry(ipa_api.user_find(), ipa_api)
+    check_user_expiry_all()
