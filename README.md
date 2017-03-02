@@ -8,3 +8,4 @@ A lot of the scripts will also contain Norwegian, although we are planning to ma
 
 If you want to contribute in some way, feel free to submit a pull request.
 
+[![Build Status](https://travis-ci.org/tihlde/TIHLDEscripts.svg?branch=master)](https://travis-ci.org/tihlde/TIHLDEscripts)
