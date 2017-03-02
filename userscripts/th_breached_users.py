@@ -4,7 +4,7 @@ from os import sys, geteuid, path
 from inspect import currentframe, getfile
 currentdir = path.dirname(path.abspath(getfile(currentframe())))
 parentdir = path.dirname(currentdir)
-sys.path.insert(0, parentdir) 
+sys.path.insert(0, parentdir)
 import urllib2
 import json
 import threading
@@ -60,10 +60,10 @@ def checkmail(emails):
         try:
             response = urllib2.urlopen(api_url+email).read()
             json_data = json.loads(response)
-            #print email + " has been compromised in the following places: "
+            #print(email + " has been compromised in the following places: ")
             for i in json_data:
                 lst.append(i.get('Name'))
-                #print i.get('Name')
+                #print(i.get('Name'))
             breached_users.update({email: lst})
 
         except urllib2.HTTPError:
@@ -79,4 +79,4 @@ for i in chunkIt(emails, 100):
 for thread in threads:
     thread.join()
 
-print breached_users
+print(breached_users)

@@ -38,18 +38,18 @@ breached_users = {}
 
 # TODO: Gjøre noe mer fornuftig enn å skrive de ut til skjerm
 for email in emails:
-    lst = [] 
+    lst = []
     try:
         response = urllib2.urlopen(api_url+email).read()
         json_data = json.loads(response)
-        #print email + " has been compromised in the following places: "
+        #print(email + " has been compromised in the following places: ")
         for i in json_data:
             lst.append(i.get('Name'))
-            #print i.get('Name')
-        
+            #print(i.get('Name'))
+
         breached_users.update({email : lst})
 
     except urllib2.HTTPError:
         pass
 
-print breached_users
+print(breached_users)
