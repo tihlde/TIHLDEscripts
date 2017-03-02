@@ -58,7 +58,6 @@ def main(args):
                                                                                info['gid_lx'],
                                                                                username))
 
-
         else:
             print('{0} is already a member of staff.'.format(username))
     else:

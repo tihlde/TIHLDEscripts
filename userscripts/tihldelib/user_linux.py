@@ -12,6 +12,7 @@ __author__ = 'Harald Floor Wilhelmsen'
 def is_root():
     return os.geteuid == 0
 
+
 def check_root():
     if not is_root:
         print('Script must be run with root privileges.')

@@ -46,7 +46,7 @@ def main():
     group_name = args[1]
     email = args[2]
     course = args[3]
-    year = args[4]
+#    year = args[4]
     first_name = args[5]
     surname = args[6]
 
@@ -67,7 +67,7 @@ def main():
                                        api=api)
 
     uid = ipa_return[0]
-    generated_pw = ipa_return[1]
+#    generated_pw = ipa_return[1]
 
     user_sql.add_user_apache(username=username,
                              groupid=gid_sql)

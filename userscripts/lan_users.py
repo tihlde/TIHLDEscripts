@@ -1,6 +1,5 @@
 # coding: utf-8
 import os
-import subprocess
 import sys
 from os.path import expanduser
 
@@ -47,7 +46,7 @@ for i in range(0, useramount, 1):
     # Create login-name
     newlogin = userprename + str(i + useridstart)
     # Create command to ipa
-    cmd = 'ipa user-add %s --homedir=/home/lan --random --gidnumber=1002 --shell=/bin/false --first=lan --last=bruker | grep "\(login\|password\)" >> %s ' %  (newlogin, outputfile)
+    cmd = 'ipa user-add %s --homedir=/home/lan --random --gidnumber=1002 --shell=/bin/false --first=lan --last=bruker | grep "\(login\|password\)" >> %s ' % (newlogin, outputfile)
     # Call command to ipa
     os.system(cmd)
     print('User ' + newlogin + ' created')
