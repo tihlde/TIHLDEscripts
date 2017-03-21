@@ -29,7 +29,7 @@ def create_lan_users():
 
     response = str(input(str(user_amount) + ' users to add. Continue? [y/N]'))
     if response.replace('\n', '').strip() != 'y':
-        return 'User called exit before adding users'
+        return 'User called exit before adding users. No changes pushed to ipa.'
 
     api = ipalib.get_ipa_api()
     username_format = 'lan-{}'
@@ -43,6 +43,8 @@ def create_lan_users():
                                             homedir_base='/home/lan/', api=api)
             credentials_file.write('Brukernavn: {0}\nPassord: {1}\n\n'.format(username, user_info[1]))
 
+    return 'created {0} users. Credentials can be found in {1}'.format(user_amount, credentials_file_path)
+
 
 def main():
     euid = os.geteuid()
@@ -52,7 +54,7 @@ def main():
     msg = create_lan_users()
     if msg:
         print(msg)
-        return
 
 
-main()
+if __name__ == '__main__':
+    main()
