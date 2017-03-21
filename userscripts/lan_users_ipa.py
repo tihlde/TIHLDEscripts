@@ -21,7 +21,7 @@ def get_useramount():
     if not user_amount.isdigit():
         sys.exit('Wrong number-format. ' + formatstring)
 
-    return user_amount
+    return int(user_amount)
 
 
 def create_lan_users():
