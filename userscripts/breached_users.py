@@ -2,12 +2,13 @@
 # -*- coding: utf-8 -*-
 from os import sys, geteuid, path
 from inspect import currentframe, getfile
-currentdir = path.dirname(path.abspath(getfile(currentframe())))
-parentdir = path.dirname(currentdir)
-sys.path.insert(0, parentdir)
 from drift_inc import dldap
 import urllib2
 import json
+
+currentdir = path.dirname(path.abspath(getfile(currentframe())))
+parentdir = path.dirname(currentdir)
+sys.path.insert(0, parentdir)
 
 __author__ = "Bjørn Gilstad (bjorngi 'at' tihlde.org)"
 __copyright__ = "Copyright (C) 2014 Trondheim Ingeniørhøgskoles" \
@@ -38,18 +39,18 @@ breached_users = {}
 
 # TODO: Gjøre noe mer fornuftig enn å skrive de ut til skjerm
 for email in emails:
-    lst = [] 
+    lst = []
     try:
-        response = urllib2.urlopen(api_url+email).read()
+        response = urllib2.urlopen(api_url + email).read()
         json_data = json.loads(response)
-        #print email + " has been compromised in the following places: "
+#        print(email + " has been compromised in the following places: ")
         for i in json_data:
             lst.append(i.get('Name'))
-            #print i.get('Name')
-        
-        breached_users.update({email : lst})
+#            print(i.get('Name'))
+
+        breached_users.update({email: lst})
 
     except urllib2.HTTPError:
         pass
 
-print breached_users
+print(breached_users)

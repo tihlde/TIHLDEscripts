@@ -1,0 +1,38 @@
+language: python
+matrix:
+  include:
+    # Debian Jessie / CentOS 7 / Arch
+    - python: 2.7
+      env: TOXENV=py27
+    # Debian Jessie / CentOS 7
+    - python: 3.4
+      env: TOXENV=py34
+    # Arch
+    - python: 3.6
+      env: TOXENV=py36
+cache: pip
+before_install:
+  - python --version
+  - uname -a
+  - lsb_release -a
+install:
+  - pip install tox
+  - virtualenv --version
+  - pip --version
+  - tox --version
+script:
+  - tox -e $TOXENV
+after_failure:
+  - more .tox/log/* | cat
+  - more .tox/*/log/* | cat
+notifications:
+  irc:
+    channels:
+      - secure: "gYvXai/20gTtum2Njmv+uXirnZM9vkNwdPMRs9tXHJtB0TdnJsu7eOzWCZX+kJetYuJRVsycbh2EqDbyv+K06gMbXhupP9qf8LwMTcPrrcE1oMEU9MnPOrPuZ0pRc6+OaBPzvr2B722K3FglZPOYTnoCclDs/l4B2rP16s5rV0g="
+    on_success: change
+    on_failure: always
+    use_notice: true
+    skip_join: true
+    template:
+      - "%{repository}#%{build_number} (%{branch} - %{commit} : %{author}): %{message} | Details : %{build_url}"
+# vim:set sw=2 ts=2 sts=2 et indentkeys=!^Fo,O,0#,<:>,- ft=yaml 

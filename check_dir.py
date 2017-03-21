@@ -6,8 +6,8 @@ import os
 def check_dir_ifempty(dir):
     try:
         if not os.listdir(dir):
-            print "empty"
+            print("empty")
         else:
-            print "not empty"
-    except Exception, e:
-        print e
+            print("not empty")
+    except Exception as e:
+        print(e)
