@@ -20,12 +20,11 @@ def get_useramount():
 
     if not user_amount.isdigit():
         sys.exit('Wrong number-format. ' + formatstring)
-
-    return int(user_amount)
+    return int(user_amount), int(input('Start id of user id'))
 
 
 def create_lan_users():
-    user_amount = get_useramount()
+    user_amount, start_id = get_useramount()
 
     response = str(input(str(user_amount) + ' users to add. Continue? [y/N]'))
     if response.replace('\n', '').strip() != 'y':
@@ -37,10 +36,10 @@ def create_lan_users():
     credentials_file_path = '/root/lan_users{}.txt'.format(time.time())
 
     with open(credentials_file_path, 'a') as credentials_file:
-        for i in range(user_amount):
+        for i in range(start_id, start_id + user_amount):
             username = username_format.format(i)
-            user_info = ipalib.add_user_ipa(username=username, firstname='Lan', lastname='Lanesen', groupid=1007,
-                                            homedir_base='/home/lan/', api=api)
+            user_info = ipalib.add_user_ipa(username=username, firstname='Lan', lastname='Lanesen', groupid=1002,
+                                         homedir_base='/home/lan/', api=api)
             credentials_file.write('Brukernavn: {0}\nPassord: {1}\n\n'.format(username, user_info[1]))
 
     return 'created {0} users. Credentials can be found in {1}'.format(user_amount, credentials_file_path)
