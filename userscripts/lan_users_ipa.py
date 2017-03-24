@@ -37,7 +37,7 @@ def create_lan_users():
     with open(credentials_file_path, 'a') as credentials_file:
         for i in range(user_amount):
             username = username_format.format(i)
-            user_info = lib.add_user_ipa(username=username, firstname='Lan', lastname='Lanesen', groupid=1007,
+            user_info = lib.add_user_ipa(username=username, firstname='Lan', lastname='Lanesen', groupid=1002,
                                          homedir_base='/home/lan/', api=api)
             credentials_file.write('Brukernavn: {0}\nPassord: {1}\n\n'.format(username, user_info[1]))
 
