@@ -10,17 +10,18 @@ __author__ = 'Harald Floor Wilhelmsen'
 
 
 def get_useramount():
-    formatstring = 'Format: python lan_users.py useramount'
+    formatstring = 'Format: python lan_users.py useramount user_start_id'
 
     # Checking if there are sufficient arguments, if not exit
-    if len(sys.argv) != 2:
+    if len(sys.argv) != 3:
         sys.exit('Invaild number of arguments. ' + formatstring)
 
     user_amount = sys.argv[1].strip()
+    user_start_id = sys.argv[2].strip()
 
-    if not user_amount.isdigit():
+    if not user_amount.isdigit() or not user_start_id.isdigit():
         sys.exit('Wrong number-format. ' + formatstring)
-    return int(user_amount), int(input('Start id of user id'))
+    return int(user_amount), int(user_start_id)
 
 
 def create_lan_users():
