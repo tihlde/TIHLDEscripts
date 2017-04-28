@@ -57,8 +57,6 @@ def log(entry, file=log_file_path, print_entry=True):
 
 
 def send_email(recipient, body):
-    # recipient = "harald_fw@live.no"
-
     sender = 'drift@tihlde.org'
     msg = MIMEMultipart()
     msg['From'] = sender
