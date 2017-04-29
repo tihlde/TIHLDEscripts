@@ -67,7 +67,7 @@ def add_user_ipa(username, firstname, lastname, groupid, homedir_base, course=No
     return [response['result']['result']['uidnumber'], password]
 
 
-def user_get(username, api=None):
+def user_get(username=None, api=None):
     """
     Gets a user from the given ipa api-object.
     :param username: username of the user to get
