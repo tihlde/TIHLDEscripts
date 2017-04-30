@@ -3,6 +3,8 @@ import smtplib
 from email.mime.multipart import MIMEMultipart
 from email.mime.text import MIMEText
 
+from tihldelib.email import Email
+
 __author__ = 'Harald Floor Wilhelmsen'
 
 
@@ -86,3 +88,23 @@ def send_email(recipient, subject, body, sender='drift@tihlde.org', smtp_host='l
         smtp_obj.sendmail(sender, recipient, text)
     except smtplib.SMTPException as error:
         return 'Error: unable to send email to "{0}". Error-msg:\n{1}'.format(recipient, error)
+
+
+def send_emails(external_emails, subject, body):
+    responses = []
+    for mail in external_emails:
+        res = send_email(
+            recipient=mail,
+            subject=subject,
+            body=body)
+        if res:
+            responses.append(res)
+
+
+def read_email_resource(filename, prefix_res=True):
+    if prefix_res:
+        filename = 'resources/' + filename
+    with open(filename, encoding='utf8') as file:
+        subject = file.readline()
+        body = ''.join(line for line in file)
+        return Email(subject, body)

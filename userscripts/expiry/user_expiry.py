@@ -1,12 +1,11 @@
 # coding: utf-8
 import math
 import time
-from time import strftime
 
+import tihldelib.expiry as expirylib
 import tihldelib.user_email as maillib
 import tihldelib.user_ipa as ipalib
-from expiry import expiry_all
-from tihldelib.user_general import read_email_resource
+from tihldelib.user_email import read_email_resource
 
 __author__ = 'Harald Floor Wilhelmsen'
 
@@ -17,18 +16,6 @@ def set_expired_shell_of_user(username, api):
     ipalib.set_loginshell(username, expired_shell, api=api)
 
 
-def send_emails(username, external_emails, body, subject):
-    maillib.send_email(
-        recipient='{}@tihlde.org'.format(username),
-        subject=subject,
-        body=body)
-    for mail in external_emails:
-        maillib.send_email(
-            recipient=mail,
-            subject=subject,
-            body=body)
-
-
 def check_expire_single_user(user, api):
     expiry_field = user['shadowexpire']
 
@@ -36,10 +23,10 @@ def check_expire_single_user(user, api):
         return
 
     expiry_int = int(expiry_field)
-    formatted_date_of_expiry = expiry_all.epochdays_to_datetime(expiry_int)
+    formatted_date_of_expiry = expirylib.epochdays_to_datetime(expiry_int)
 
     # date of expiry - today
-    days_until_expiry = expiry_int - math.floor(time.time() / expiry_all.SECONDS_PER_DAY)
+    days_until_expiry = expiry_int - math.floor(time.time() / expirylib.SECONDS_PER_DAY)
     # sjekk shadow-expire
     # har brukeren gaatt ut: Er expired shell ikke satt, sett expired shell
     if days_until_expiry == 0:
@@ -47,29 +34,27 @@ def check_expire_single_user(user, api):
         return
     elif days_until_expiry < 0:
         # user expired before today
-        # check if expiry-actions have been done, if not, do them and send an email
         if user['loginshell'] != expired_shell:
+            # check if expiry-actions have been doneif not, do them and send an email
             set_expired_shell_of_user(username=user['uid'], api=api)
+            email = maillib.read_email_resource('user_has_expired.txt')
+            for mail in user['mail']:
+                maillib.send_email(mail, email.subject, email.body.format('stuff'))
     else:
-        if [7, 14, 30].index(days_until_expiry) == -1:
-            # expire er mellom(inklusiv) 1 og 30 men er ikke 7, 14, eller 30
-            # do nothing?
-            return
-        else:
+        if days_until_expiry in [7, 14, 30]:
             # det er 7, 14 eller 30 dager til brukeren går ut
             # send mail om det til brukeren
             mail_future_expiry = read_email_resource('user_future_expiry.txt')
-            send_emails(
-                username=user['uid'],
-                external_emails=user['mail'],
-                subject=mail_future_expiry.subject.format(days_until_expiry),
-                body=mail_future_expiry.body.format(days_until_expiry, formatted_date_of_expiry.strftime('%Y.%m.%d')))
+            maillib.send_emails(external_emails=user['mail'],
+                                subject=mail_future_expiry.subject.format(days_until_expiry),
+                                body=mail_future_expiry.body.format(days_until_expiry,
+                                                                    formatted_date_of_expiry.strftime('%Y.%m.%d')))
 
 
 def check_user_expiry_all():
     ipa_api = ipalib.get_ipa_api()
     # liste over alle brukere i IPA
-    all_users = expiry_all.get_all_users(ipa_api)
+    all_users = ipalib.get_all_users(ipa_api)
     for user in all_users:
         check_expire_single_user(user, ipa_api)
 

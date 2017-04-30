@@ -4,33 +4,18 @@ import datetime
 import tihldelib.user_ipa as ipalib
 from expiry import password_expiry, user_expiry
 
-SECONDS_PER_DAY = 86400
 
-
-def krb_expiry_to_datetime(expiry_string):
-    # example 20170715
-    return datetime.datetime.strptime(expiry_string[:8], '%Y%m%d')
-
-
-def epochdays_to_datetime(epoch_days):
-    return datetime.datetime.utcfromtimestamp(epoch_days * SECONDS_PER_DAY)
-
-
-def get_all_users(api=ipalib.get_ipa_api()):
-    return api.user_find()['result']['result']
-
-
-def check_password_user_expiry_all():
+def check_expiry_all():
     api = ipalib.get_ipa_api()
     # liste over alle brukere i IPA
-    all_users = get_all_users(api)
+    all_users = ipalib.get_all_users(api)
     for user in all_users:
         user_expiry.check_expire_single_user(user, api)
-        password_expiry.check_password_expiry(user)
+        password_expiry.check_password_expiry_single_user(user)
 
 
 if __name__ == '__main__':
-    check_password_user_expiry_all()
+    check_expiry_all()
 
 
 # today = math.floor(time.time() / SECONDS_PER_DAY)

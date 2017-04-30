@@ -81,6 +81,10 @@ def user_get(username=None, api=None):
     return api.user_find(username)
 
 
+def get_all_users(api=get_ipa_api()):
+    return api.user_find()['result']['result']
+
+
 def user_exists_from_output(user_get_output):
     """
     Returns True or False representing if a user exists or not, based on output from @user_get.

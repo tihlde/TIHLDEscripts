@@ -4,6 +4,8 @@ import shutil
 import sys
 from subprocess import call
 
+import pwd
+
 import tihldelib.user_general as user_general
 
 __author__ = 'Harald Floor Wilhelmsen'
@@ -94,3 +96,11 @@ def set_quota(uid, quota_value):
         return 'ok'
     else:
         return None
+
+
+def user_exists(username):
+    try:
+        pwd.getpwnam(username)
+        return True
+    except KeyError:
+        return False
