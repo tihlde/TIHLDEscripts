@@ -16,9 +16,39 @@ import pymysql
 from tihldelib.ipahttp import ipa
 from tihldelib.user_linux import check_root
 
-external_email_body = "Brukeren din på TIHLDE-serveren Colargol har blitt opprettet. Dette fordi du signerte på brukerreglementet ved innmeldingsfesten. Reglementet er også beskrevet her: http://tihlde.org/lover/brukerreglement.htm \n\nHer har du nå fått tildelt en shellkonto med 10GB lagringsplass, TIHLDE-epost, samt webhotell for adressen din http://{0}.tihlde.org og masse annet snacks. For å se alt vi tilbyr kan du sjekke https://tihlde.org/tjenester/. \n\nDu kan logge inn med SSH (Last ned putty om du bruker windows) på hostnavn: tihlde.org\nBrukernavn: {0}\nPassord: {1}\n\nDu vil bli bedt om å skifte passord ved første innlogging, det kan endres senere med kommando 'passwd'. Dette passordet blir syncet med andre tjenster vi tilbyr i TIHLDE. Teknisk hjelp finnes på http://tihlde.org/ . Andre tekniske henvendelser kan sendes på mail til support@tihlde.org\n\nMvh\ndrift@tihlde.org"
+external_email_body = "Brukeren din på TIHLDE-serveren Colargol har blitt " \
+                      "opprettet. Dette fordi du signerte på " \
+                      "brukerreglementet ved innmeldingsfesten. Reglementet " \
+                      "er også beskrevet her: " \
+                      "http://tihlde.org/lover/brukerreglement.htm \n\n" \
+                      "Her har du nå fått tildelt en shellkonto med 10GB " \
+                      "lagringsplass, TIHLDE-epost, samt webhotell for " \
+                      "adressen din http://{0}.tihlde.org og masse annet " \
+                      "snacks. For å se alt vi tilbyr kan du sjekke " \
+                      "https://tihlde.org/tjenester/. \n\n" \
+                      "Du kan logge inn med SSH (Last ned putty om du " \
+                      "bruker windows) på hostnavn: tihlde.org\n" \
+                      "Brukernavn: {0}\n" \
+                      "Passord: {1}\n\n" \
+                      "Du vil bli bedt om å skifte passord ved første " \
+                      "innlogging, det kan endres senere med kommando " \
+                      "'passwd'. Dette passordet blir syncet med andre " \
+                      "tjenster vi tilbyr i TIHLDE. Teknisk hjelp finnes på " \
+                      "http://tihlde.org/ . Andre tekniske henvendelser kan " \
+                      "sendes på mail til support@tihlde.org\n\n" \
+                      "Mvh\n" \
+                      "drift@tihlde.org"
 
-tihlde_email_body = "Hei og velkommen til Tihlde! \n\nDu har nå fått tildelt en shellkonto med 10GB lagringsplass, TIHLDE-epost, samt webhotell for adressen din http://{0}.tihlde.org og masse annet snacks.\n\nOm du skulle få noen problemer med de digitale tjenestene som Tihlde tilbyr til sine medlemmer så er det bare å ta kontakt på support@tihlde.org\n\nMvh\ndrift@tihlde.org"
+tihlde_email_body = "Hei og velkommen til Tihlde! \n\n" \
+                    "Du har nå fått tildelt en shellkonto med 10GB " \
+                    "lagringsplass, TIHLDE-epost, samt webhotell for " \
+                    "adressen din http://{0}.tihlde.org og masse annet " \
+                    "snacks.\n\n" \
+                    "Om du skulle få noen problemer med de digitale " \
+                    "tjenestene som Tihlde tilbyr til sine medlemmer så er " \
+                    "det bare å ta kontakt på support@tihlde.org\n\n" \
+                    "Mvh\n" \
+                    "drift@tihlde.org"
 
 sql_groupid = 7
 linux_groupid = 1007
@@ -69,29 +99,35 @@ def send_email(recipient, body):
         smtpObj.sendmail(sender, recipient, text)
         log('Successfully sent email to "' + recipient + '"')
     except smtplib.SMTPException as error:
-        log('Error: unable to send email to "' + recipient + '". Error-msg logged to error-log')
-        log("Error-msg when sending mail to {0}\n{1}".format(recipient, error), file=error_log_file_path,
+        log('Error: unable to send email to "' + recipient
+            + '". Error-msg logged to error-log')
+        log("Error-msg when sending mail to {0}\n{1}".format(recipient, error),
+            file=error_log_file_path,
             print_entry=False)
 
 
-def add_single_user(api, username, firstname, lastname, course, email, password):
-    gecos = str(firstname) + ' ' + str(lastname) + ' ,' + str(email) + ' ,' + str(course)
+def add_single_user(api, username, firstname, lastname, course, email,
+                    password):
+    gecos = str(firstname) + ' ' + str(lastname) + ', ' + str(course)
 
-    info = \
-        {
-            "givenname": firstname,
-            "sn": lastname,
-            "userpassword": password,
-            "gecos": gecos,
-            "gidnumber": linux_groupid,
-            "homedirectory": "/home/students/" + username
-        }
+    info = {
+        "givenname": firstname,
+        "sn": lastname,
+        "userpassword": password,
+        "gecos": gecos,
+        "gidnumber": linux_groupid,
+        "homedirectory": "/home/students/" + username,
+        "mail": [email, username + "@tihlde.org"]
+    }
 
     response = api.user_add(username, info)
     error_response = response['error']
     if error_response:
-        log('An error occured when calling IPA for user {0}. Logged to ipa log file'.format(username))
-        log(json.dumps(error_response), file=ipa_log_file_path, print_entry=False)
+        log('An error occured when calling IPA for '
+            'user {0}. Logged to ipa log file'.format(username))
+        print(json.dumps(error_response))
+        log(json.dumps(error_response), file=ipa_log_file_path,
+            print_entry=False)
         return
     return response['result']['result']['uidnumber']
 
@@ -100,14 +136,15 @@ def make_homedir(username, uid):
     new_home_dir = '/home/students/{0}'.format(username)
     # if dir exists, do nothing
     if os.path.exists(new_home_dir):
-        log('Homedir for user {0} not created, "{1}" already exists, skipping'.format(username, new_home_dir),
+        log('Homedir for user {0} not created, "{1}" already exists, '
+            'skipping'.format(username, new_home_dir),
             file=error_log_file_path)
         return
 
     # else, copy /etc/skel to /home/students/<username>
     shutil.copytree('/etc/skel', new_home_dir)
     # chown <uid>:<gid> /home/students/<username>
-    call(['chown', '-R', uid + ':' + str(linux_groupid), new_home_dir])
+    call(['chown', '-R', uid[0] + ':' + str(linux_groupid), new_home_dir])
     # chmod 700 /home/students/<username>
     os.chmod(path=new_home_dir, mode=0o700)
 
@@ -118,23 +155,29 @@ def add_all_users():
     mailliste_file = open(mailliste_path, 'a')
 
     # Connections to the databases
+    with open("/home/staff/drift/passord/db-medlemsregister") as f:
+        m_reg_pw = f.readline().rstrip('\n')
+
     mreg_conn = pymysql.connect(host="tihlde.org",
                                 user="medlemsregister",
-                                password=open("/home/staff/drift/passord/db-medlemsregister").readline().rstrip('\n'),
+                                password=m_reg_pw,
                                 database="medlemsregister",
                                 charset='utf8')
     mreg_cursor = mreg_conn.cursor()
 
+    with open("/home/staff/drift/passord/db-apache") as f:
+        apache_pw = f.readline().replace('\n', '')
     apache_conn = pymysql.connect(host="localhost",
                                   user="apache",
-                                  password=open("/home/staff/drift/passord/db-apache").readline().replace('\n', ''),
+                                  password=apache_pw,
                                   database="apache",
                                   charset='utf8')
     apache_cursor = apache_conn.cursor()
 
     api = ipa("ipa1.tihlde.org", sslverify=True)
     # username, password(second line of ipa-admin password-file)
-    api.login('admin', open("/home/staff/drift/passord/ipa-admin").readlines()[1].replace('\n', '').strip())
+    with open("/home/staff/drift/passord/ipa.pw") as f:
+        api.login('admin', f.read()[1].replace('\n', '').strip())
 
     log('Fetching users from database "medlemsregister"...')
 
@@ -142,18 +185,21 @@ def add_all_users():
     date_to = '2016-10-16'
     mreg_cursor.execute(
         "SELECT fornavn, etternavn, linje, histbruker, epost FROM members "
-        "WHERE timestamp BETWEEN '{0}' AND '{1}' AND aktivert = '1' AND eula = '1'".format(date_from, date_to))
+        "WHERE timestamp BETWEEN '{0}' AND '{1}' AND aktivert = '1' AND eula "
+        "= '1'".format(date_from, date_to))
 
     # loop to add every user pulled from the database to FreeIPA and
     # send them a mail with login information
     mreg_users = mreg_cursor.fetchall()
 
-    response = str(input(str(len(mreg_users)) + " users to add. Continue? [y/n]"))
+    response = str(
+        input(str(len(mreg_users)) + " users to add. Continue? [y/n]"))
     if response.replace('\n', '').strip() != 'y':
         return 'User called exit before adding users'
 
     for row in mreg_users:
-        # Extract data from row. order: fornavn, etternavn, linje, histbruker, epost
+        # Extract data from row. order: fornavn, etternavn, linje,
+        # histbruker, epost
         username = str(row[3]).strip().lower()
         firstname = str(row[0]).strip()
         lastname = str(row[1]).strip()
@@ -161,26 +207,41 @@ def add_all_users():
         email = str(row[4]).strip().lower()
         generatedpw = generate_password()
 
-        log('Adding user "' + username + '" with full name "' + str(firstname) + ' ' + str(lastname) + '"')
-        uid = add_single_user(api, username, firstname, lastname, course, email, generatedpw)  # add user
+        log('Adding user "' + username + '" with full name "' + str(
+            firstname) + ' ' + str(lastname) + '"')
+        uid = add_single_user(api, username, firstname, lastname, course,
+                              email, generatedpw)  # add user
         if not uid:
-            log('Skipped sending emails, creating homedir and adding to mailinglist for user {0}'.format(username))
+            log(
+                'Skipped sending emails, creating homedir and adding to '
+                'mailinglist for user {0}'.format(
+                    username))
             continue
 
         make_homedir(username, uid)
 
-        send_email(email, external_email_body.format(username, generatedpw))  # send email to external email
-        send_email(username + '@tihlde.org', tihlde_email_body.format(username))  # send email to tihlde-email
+        send_email(email, external_email_body.format(username,
+                                                     generatedpw))  # send
+        # email to external email
+        send_email(username + '@tihlde.org', tihlde_email_body.format(
+            username))  # send email to tihlde-email
 
         mailliste_file.write(username + "@tihlde.org\n")
 
         try:
             apache_cursor.execute(
-                "INSERT INTO `apache`.`brukere` (`id`, `brukernavn`, `gruppe`, `expired`, `deaktivert`, `webdav`, `kommentar`) "
-                "VALUES (NULL, '{0}', '{1}', 'false', 'false', 'false', '');".format(username, str(sql_groupid)))
+                "INSERT INTO `apache`.`brukere` (`id`, `brukernavn`, "
+                "`gruppe`, `expired`, `deaktivert`, `webdav`, `kommentar`) "
+                "VALUES (NULL, '{0}', '{1}', 'false', 'false', 'false', "
+                "'');".format(
+                    username, str(sql_groupid)))
         except pymysql.Error as err:
-            log('Something wen wrong when pushing user {} to the apache data'.format(username))
-            log("Error for username {0}:\n{1}".format(username, err), file=error_log_file_path, print_entry=False)
+            log(
+                'Something wen wrong when pushing user {} to the apache '
+                'data'.format(
+                    username))
+            log("Error for username {0}:\n{1}".format(username, err),
+                file=error_log_file_path, print_entry=False)
 
     # close mailliste_file
     mailliste_file.close()
@@ -190,8 +251,10 @@ def add_all_users():
     apache_cursor.close()
     apache_conn.close()
 
-    call(["python", "/var/lib/mailman/bin/add_members", "-r", mailliste_path, "-w", "n", "colusers"])
-    call(["python", "/var/lib/mailman/bin/add_members", "-r", mailliste_path, "-w", "n", "tihlde-info"])
+    call(["python", "/var/lib/mailman/bin/add_members", "-r", mailliste_path,
+          "-w", "n", "colusers"])
+    call(["python", "/var/lib/mailman/bin/add_members", "-r", mailliste_path,
+          "-w", "n", "tihlde-info"])
     os.remove(mailliste_path)
     return
 
@@ -199,7 +262,8 @@ def add_all_users():
 def main():
     check_root()
 
-    script_run_entry = '\nNew run of the script at {0}'.format(datetime.datetime.now())
+    script_run_entry = '\nNew run of the script at {0}'.format(
+        datetime.datetime.now())
     log(script_run_entry)
     log(script_run_entry, file=ipa_log_file_path, print_entry=False)
     log(script_run_entry, file=error_log_file_path, print_entry=False)
