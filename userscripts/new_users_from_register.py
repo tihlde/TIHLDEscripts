@@ -144,7 +144,7 @@ def make_homedir(username, uid):
     # else, copy /etc/skel to /home/students/<username>
     shutil.copytree('/etc/skel', new_home_dir)
     # chown <uid>:<gid> /home/students/<username>
-    call(['chown', '-R', uid[0] + ':' + str(linux_groupid), new_home_dir])
+    call(['chown', '-R', uid + ':' + str(linux_groupid), new_home_dir])
     # chmod 700 /home/students/<username>
     os.chmod(path=new_home_dir, mode=0o700)
 
@@ -177,7 +177,7 @@ def add_all_users():
     api = ipa("ipa1.tihlde.org", sslverify=True)
     # username, password(second line of ipa-admin password-file)
     with open("/home/staff/drift/passord/ipa.pw") as f:
-        api.login('admin', f.read()[1].replace('\n', '').strip())
+        api.login('admin', f.read().replace('\n', '').strip())
 
     log('Fetching users from database "medlemsregister"...')
 
@@ -218,10 +218,9 @@ def add_all_users():
                     username))
             continue
 
-        make_homedir(username, uid)
+        make_homedir(username, uid[0])
 
-        send_email(email, external_email_body.format(username,
-                                                     generatedpw))  # send
+        send_email(email, external_email_body.format(username, generatedpw))
         # email to external email
         send_email(username + '@tihlde.org', tihlde_email_body.format(
             username))  # send email to tihlde-email
@@ -233,13 +232,10 @@ def add_all_users():
                 "INSERT INTO `apache`.`brukere` (`id`, `brukernavn`, "
                 "`gruppe`, `expired`, `deaktivert`, `webdav`, `kommentar`) "
                 "VALUES (NULL, '{0}', '{1}', 'false', 'false', 'false', "
-                "'');".format(
-                    username, str(sql_groupid)))
+                "'');".format(username, str(sql_groupid)))
         except pymysql.Error as err:
-            log(
-                'Something wen wrong when pushing user {} to the apache '
-                'data'.format(
-                    username))
+            log('Something wen wrong when pushing user {} to the apache '
+                'data'.format(username))
             log("Error for username {0}:\n{1}".format(username, err),
                 file=error_log_file_path, print_entry=False)
 
